@@ -1,9 +1,18 @@
+import 'dart:convert';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../viewmodels/habit_viewmodel.dart';
 import '../models/user_profile_model.dart';
 import '../viewmodels/auth_viewmodel.dart';
+import '../viewmodels/theme_viewmodel.dart';
+import '../services/database_helper.dart';
+import '../theme/theme_ext.dart';
+import 'package:file_selector/file_selector.dart';
+import 'dart:typed_data';
+import 'package:path_provider/path_provider.dart';
+import 'package:share_plus/share_plus.dart';
 
 class SettingsView extends ConsumerStatefulWidget {
   const SettingsView({Key? key}) : super(key: key);
@@ -13,86 +22,141 @@ class SettingsView extends ConsumerStatefulWidget {
 }
 
 class _SettingsViewState extends ConsumerState<SettingsView> {
-  bool _notificationsEnabled = true;
-  bool _soundEnabled = true;
-
   void _showEditProfileDialog(BuildContext context, UserProfileModel profile, HabitViewModel vm) {
     final controller = TextEditingController(text: profile.name);
+    Uint8List? selectedImageBytes = profile.avatarData;
 
     showDialog(
       context: context,
       builder: (context) {
-        return AlertDialog(
-          backgroundColor: const Color(0xFF1E293B),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(20),
-            side: BorderSide(color: Colors.white.withOpacity(0.1)),
-          ),
-          title: Text(
-            'Edit Profile Name',
-            style: GoogleFonts.plusJakartaSans(
-              color: const Color(0xFFE4E1ED),
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: controller,
-                autofocus: true,
-                style: GoogleFonts.plusJakartaSans(color: Colors.white),
-                decoration: InputDecoration(
-                  labelText: 'Name',
-                  labelStyle: GoogleFonts.plusJakartaSans(color: const Color(0xFFC7C4D7)),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide(color: Colors.white.withOpacity(0.2)),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(color: Color(0xFF8083FF), width: 2),
-                  ),
-                ),
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return AlertDialog(
+              backgroundColor: context.isDark ? const Color(0xFF1E293B) : Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
+                side: BorderSide(color: context.textColor.withOpacity(0.1)),
               ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: Text(
-                'Cancel',
-                style: GoogleFonts.plusJakartaSans(color: const Color(0xFFC7C4D7)),
-              ),
-            ),
-            ElevatedButton(
-              onPressed: () {
-                final newName = controller.text.trim();
-                if (newName.isNotEmpty) {
-                  vm.updateProfile(UserProfileModel(
-                    name: newName,
-                    avatarUrl: profile.avatarUrl,
-                    overallStreak: profile.overallStreak,
-                    joinedDate: profile.joinedDate,
-                  ));
-                }
-                Navigator.pop(context);
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF8083FF),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-              ),
-              child: Text(
-                'Save',
+              title: Text(
+                'Edit Profile',
                 style: GoogleFonts.plusJakartaSans(
-                  color: const Color(0xFF0F172A),
+                  color: context.textColor,
                   fontWeight: FontWeight.bold,
                 ),
               ),
-            ),
-          ],
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  GestureDetector(
+                    onTap: () async {
+                      try {
+                        final XFile? file = await openFile(
+                          acceptedTypeGroups: <XTypeGroup>[
+                            const XTypeGroup(
+                              label: 'images',
+                              extensions: <String>['jpg', 'png', 'jpeg'],
+                            ),
+                          ],
+                        );
+                        if (file != null) {
+                          final bytes = await file.readAsBytes();
+                          setState(() {
+                            selectedImageBytes = bytes;
+                          });
+                        }
+                      } catch (e) {
+                        print('Failed to pick profile picture: $e');
+                      }
+                    },
+                    child: Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        CircleAvatar(
+                          radius: 40,
+                          backgroundImage: selectedImageBytes != null
+                              ? MemoryImage(selectedImageBytes!)
+                              : (profile.avatarUrl.isNotEmpty
+                                  ? NetworkImage(profile.avatarUrl) as ImageProvider
+                                  : null),
+                          backgroundColor: context.isDark ? const Color(0xFF34343D) : const Color(0xFFE2E8F0),
+                          child: (selectedImageBytes == null && profile.avatarUrl.isEmpty)
+                              ? Icon(Icons.person, size: 40, color: context.secondaryTextColor)
+                              : null,
+                        ),
+                        Positioned(
+                          bottom: 0,
+                          right: 0,
+                          child: Container(
+                            padding: const EdgeInsets.all(4),
+                            decoration: const BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: Color(0xFF8083FF),
+                            ),
+                            child: const Icon(
+                              Icons.camera_alt_rounded,
+                              size: 14,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  TextField(
+                    controller: controller,
+                    style: GoogleFonts.plusJakartaSans(color: context.textColor),
+                    decoration: InputDecoration(
+                      labelText: 'Name',
+                      labelStyle: GoogleFonts.plusJakartaSans(color: context.secondaryTextColor),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(color: context.textColor.withOpacity(0.2)),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: const BorderSide(color: Color(0xFF8083FF), width: 2),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: Text(
+                    'Cancel',
+                    style: GoogleFonts.plusJakartaSans(color: context.secondaryTextColor),
+                  ),
+                ),
+                ElevatedButton(
+                  onPressed: () {
+                    final newName = controller.text.trim();
+                    if (newName.isNotEmpty) {
+                      vm.updateProfile(profile.copyWith(
+                        name: newName,
+                        avatarData: selectedImageBytes,
+                      ));
+                    }
+                    Navigator.pop(context);
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF8083FF),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  child: Text(
+                    'Save',
+                    style: GoogleFonts.plusJakartaSans(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ],
+            );
+          },
         );
       },
     );
@@ -103,15 +167,11 @@ class _SettingsViewState extends ConsumerState<SettingsView> {
     final state = ref.watch(habitViewModelProvider);
     final vm = ref.read(habitViewModelProvider.notifier);
     final authState = ref.watch(authProvider);
-    final profile = state.userProfile ?? UserProfileModel(
-      name: 'Alex Morgan',
-      avatarUrl: '',
-      overallStreak: 12,
-      joinedDate: 'October 2024',
-    );
+    final settings = ref.watch(settingsProvider);
+    final profile = state.userProfile;
 
     return Scaffold(
-      backgroundColor: const Color(0xFF0F172A),
+      backgroundColor: context.bgColor,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -120,12 +180,12 @@ class _SettingsViewState extends ConsumerState<SettingsView> {
           child: Container(
             decoration: const BoxDecoration(
               shape: BoxShape.circle,
-              color: Color(0xFF8083FF), // Primary Container color
+              color: Color(0xFF8083FF),
             ),
             alignment: Alignment.center,
             child: const Icon(
               Icons.person,
-              color: Color(0xFF0D0096),
+              color: Colors.white,
               size: 16,
             ),
           ),
@@ -139,12 +199,6 @@ class _SettingsViewState extends ConsumerState<SettingsView> {
             color: const Color(0xFF8083FF),
           ),
         ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.settings_rounded, color: Color(0xFFC7C4D7)),
-            onPressed: () {},
-          ),
-        ],
       ),
       body: SafeArea(
         child: SingleChildScrollView(
@@ -156,12 +210,16 @@ class _SettingsViewState extends ConsumerState<SettingsView> {
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF1E293B),
+                  color: context.cardColor,
                   borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: Colors.white.withOpacity(0.05)),
+                  border: Border.all(
+                    color: context.isDark
+                        ? Colors.white.withOpacity(0.05)
+                        : Colors.black.withOpacity(0.05),
+                  ),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.2),
+                      color: Colors.black.withOpacity(context.isDark ? 0.2 : 0.05),
                       blurRadius: 10,
                       offset: const Offset(0, 4),
                     ),
@@ -174,12 +232,14 @@ class _SettingsViewState extends ConsumerState<SettingsView> {
                       children: [
                         CircleAvatar(
                           radius: 32,
-                          backgroundImage: profile.avatarUrl.isNotEmpty
-                              ? NetworkImage(profile.avatarUrl)
-                              : null,
-                          backgroundColor: const Color(0xFF34343D),
-                          child: profile.avatarUrl.isEmpty
-                              ? const Icon(Icons.person, size: 36, color: Color(0xFFC7C4D7))
+                          backgroundImage: profile?.avatarData != null
+                              ? MemoryImage(profile!.avatarData!)
+                              : (profile != null && profile.avatarUrl.isNotEmpty
+                                  ? NetworkImage(profile.avatarUrl) as ImageProvider
+                                  : null),
+                          backgroundColor: context.isDark ? const Color(0xFF34343D) : const Color(0xFFE2E8F0),
+                          child: (profile == null || (profile.avatarData == null && profile.avatarUrl.isEmpty))
+                              ? Icon(Icons.person, size: 36, color: context.secondaryTextColor)
                               : null,
                         ),
                         Positioned(
@@ -191,7 +251,10 @@ class _SettingsViewState extends ConsumerState<SettingsView> {
                             decoration: BoxDecoration(
                               shape: BoxShape.circle,
                               color: const Color(0xFF22C55E),
-                              border: Border.all(color: const Color(0xFF1E293B), width: 2),
+                              border: Border.all(
+                                color: context.cardColor,
+                                width: 2,
+                              ),
                             ),
                             alignment: Alignment.center,
                             child: const Icon(
@@ -211,28 +274,11 @@ class _SettingsViewState extends ConsumerState<SettingsView> {
                           Row(
                             children: [
                               Text(
-                                profile.name,
+                                profile?.name ?? "Alex",
                                 style: GoogleFonts.plusJakartaSans(
                                   fontSize: 18,
                                   fontWeight: FontWeight.bold,
-                                  color: const Color(0xFFE4E1ED),
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFF8083FF).withOpacity(0.2),
-                                  borderRadius: BorderRadius.circular(10),
-                                ),
-                                child: Text(
-                                  'FREE PLAN',
-                                  style: GoogleFonts.plusJakartaSans(
-                                    fontSize: 8,
-                                    fontWeight: FontWeight.bold,
-                                    color: const Color(0xFF8083FF),
-                                    letterSpacing: 0.5,
-                                  ),
+                                  color: context.textColor,
                                 ),
                               ),
                             ],
@@ -242,14 +288,18 @@ class _SettingsViewState extends ConsumerState<SettingsView> {
                             authState.email ?? 'alex@example.com',
                             style: GoogleFonts.plusJakartaSans(
                               fontSize: 13,
-                              color: const Color(0xFFC7C4D7).withOpacity(0.7),
+                              color: context.secondaryTextColor,
                             ),
                           ),
                         ],
                       ),
                     ),
                     IconButton(
-                      onPressed: () => _showEditProfileDialog(context, profile, vm),
+                      onPressed: () {
+                        if (profile != null) {
+                          _showEditProfileDialog(context, profile, vm);
+                        }
+                      },
                       icon: const Icon(
                         Icons.edit_rounded,
                         color: Color(0xFF8083FF),
@@ -266,23 +316,80 @@ class _SettingsViewState extends ConsumerState<SettingsView> {
               const SizedBox(height: 10),
               Container(
                 decoration: BoxDecoration(
-                  color: const Color(0xFF1F1F27),
+                  color: context.containerColor,
                   borderRadius: BorderRadius.circular(16),
                 ),
                 child: Column(
                   children: [
-                    _buildLinkTile(
+                    _buildSwitchTile(
                       icon: Icons.cloud_sync_rounded,
                       iconColor: const Color(0xFF60A5FA),
                       title: 'Account & Cloud Sync',
-                      trailingText: 'Firebase Synced',
-                      trailingTextColor: const Color(0xFF22C55E),
+                      value: ref.watch(authProvider).isCloudSyncEnabled,
+                      onChanged: (val) {
+                        ref.read(authProvider.notifier).toggleCloudSync(val);
+                      },
                     ),
-                    Divider(color: Colors.white.withOpacity(0.05), height: 1),
+                    Divider(
+                      color: context.textColor.withOpacity(0.05),
+                      height: 1,
+                    ),
                     _buildLinkTile(
                       icon: Icons.ios_share_rounded,
                       iconColor: const Color(0xFFFFB783),
                       title: 'Export Data (CSV/JSON)',
+                      onTap: () async {
+                        try {
+                          final habits = state.habits;
+                          final List<Map<String, dynamic>> maps = habits.map((h) => h.toMap()).toList();
+                          final String jsonContent = jsonEncode(maps);
+
+                          if (Platform.isAndroid || Platform.isIOS) {
+                            final tempDir = await getTemporaryDirectory();
+                            final file = File('${tempDir.path}/habit_flow_export.json');
+                            await file.writeAsString(jsonContent);
+
+                            await Share.shareXFiles(
+                              [XFile(file.path)],
+                              subject: 'HabitFlow Data Export',
+                            );
+                          } else {
+                            final FileSaveLocation? result = await getSaveLocation(
+                              suggestedName: 'habit_flow_export.json',
+                              acceptedTypeGroups: const <XTypeGroup>[
+                                XTypeGroup(label: 'JSON', extensions: <String>['json']),
+                              ],
+                            );
+                            if (result != null) {
+                              final file = File(result.path);
+                              await file.writeAsString(jsonContent);
+                              if (context.mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    backgroundColor: const Color(0xFF22C55E),
+                                    content: Text(
+                                      'Data exported successfully!',
+                                      style: GoogleFonts.plusJakartaSans(color: Colors.white),
+                                    ),
+                                  ),
+                                );
+                              }
+                            }
+                          }
+                        } catch (e) {
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                backgroundColor: const Color(0xFFEF4444),
+                                content: Text(
+                                  'Export failed: $e',
+                                  style: GoogleFonts.plusJakartaSans(color: Colors.white),
+                                ),
+                              ),
+                            );
+                          }
+                        }
+                      },
                     ),
                   ],
                 ),
@@ -294,40 +401,46 @@ class _SettingsViewState extends ConsumerState<SettingsView> {
               const SizedBox(height: 10),
               Container(
                 decoration: BoxDecoration(
-                  color: const Color(0xFF1F1F27),
+                  color: context.containerColor,
                   borderRadius: BorderRadius.circular(16),
                 ),
                 child: Column(
                   children: [
-                    _buildLinkTile(
+                    _buildSwitchTile(
                       icon: Icons.dark_mode_rounded,
                       iconColor: const Color(0xFF8083FF),
-                      title: 'App Theme',
-                      trailingText: 'Dark',
-                      trailingTextColor: const Color(0xFFC7C4D7),
+                      title: 'Dark Mode',
+                      value: ref.watch(themeProvider) == ThemeMode.dark,
+                      onChanged: (val) {
+                        ref.read(themeProvider.notifier).setThemeMode(
+                              val ? ThemeMode.dark : ThemeMode.light,
+                            );
+                      },
                     ),
-                    Divider(color: Colors.white.withOpacity(0.05), height: 1),
+                    Divider(
+                      color: context.textColor.withOpacity(0.05),
+                      height: 1,
+                    ),
                     _buildSwitchTile(
                       icon: Icons.notifications_active_rounded,
                       iconColor: const Color(0xFFFFB690),
                       title: 'Daily Push Notifications',
-                      value: _notificationsEnabled,
+                      value: settings.notificationsEnabled,
                       onChanged: (val) {
-                        setState(() {
-                          _notificationsEnabled = val;
-                        });
+                        ref.read(settingsProvider.notifier).setNotificationsEnabled(val);
                       },
                     ),
-                    Divider(color: Colors.white.withOpacity(0.05), height: 1),
+                    Divider(
+                      color: context.textColor.withOpacity(0.05),
+                      height: 1,
+                    ),
                     _buildSwitchTile(
                       icon: Icons.volume_up_rounded,
                       iconColor: const Color(0xFFF472B6),
                       title: 'Sound Effects',
-                      value: _soundEnabled,
+                      value: settings.soundEnabled,
                       onChanged: (val) {
-                        setState(() {
-                          _soundEnabled = val;
-                        });
+                        ref.read(settingsProvider.notifier).setSoundEnabled(val);
                       },
                     ),
                   ],
@@ -340,7 +453,7 @@ class _SettingsViewState extends ConsumerState<SettingsView> {
               const SizedBox(height: 10),
               Container(
                 decoration: BoxDecoration(
-                  color: const Color(0xFF1F1F27),
+                  color: context.containerColor,
                   borderRadius: BorderRadius.circular(16),
                 ),
                 child: Column(
@@ -350,7 +463,10 @@ class _SettingsViewState extends ConsumerState<SettingsView> {
                       iconColor: const Color(0xFF908FA0),
                       title: 'Privacy Policy',
                     ),
-                    Divider(color: Colors.white.withOpacity(0.05), height: 1),
+                    Divider(
+                      color: context.textColor.withOpacity(0.05),
+                      height: 1,
+                    ),
                     _buildLinkTile(
                       icon: Icons.star_rounded,
                       iconColor: const Color(0xFFF59E0B),
@@ -368,7 +484,7 @@ class _SettingsViewState extends ConsumerState<SettingsView> {
                   'App Version 1.0.0',
                   style: GoogleFonts.plusJakartaSans(
                     fontSize: 12,
-                    color: const Color(0xFFC7C4D7).withOpacity(0.4),
+                    color: context.secondaryTextColor.withOpacity(0.5),
                   ),
                 ),
               ),
@@ -380,15 +496,24 @@ class _SettingsViewState extends ConsumerState<SettingsView> {
                   onTap: () => ref.read(authProvider.notifier).signOut(),
                   borderRadius: BorderRadius.circular(30),
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 32,
+                      vertical: 12,
+                    ),
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(30),
-                      border: Border.all(color: const Color(0xFFffb4ab).withOpacity(0.3)),
+                      border: Border.all(
+                        color: const Color(0xFFffb4ab).withOpacity(0.3),
+                      ),
                     ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        const Icon(Icons.logout_rounded, color: Color(0xFFffb4ab), size: 20),
+                        const Icon(
+                          Icons.logout_rounded,
+                          color: Color(0xFFffb4ab),
+                          size: 20,
+                        ),
                         const SizedBox(width: 8),
                         Text(
                           'Sign Out',
@@ -419,7 +544,7 @@ class _SettingsViewState extends ConsumerState<SettingsView> {
         style: GoogleFonts.plusJakartaSans(
           fontSize: 11,
           fontWeight: FontWeight.bold,
-          color: const Color(0xFFC7C4D7).withOpacity(0.6),
+          color: context.secondaryTextColor.withOpacity(0.6),
           letterSpacing: 1.5,
         ),
       ),
@@ -452,7 +577,7 @@ class _SettingsViewState extends ConsumerState<SettingsView> {
               style: GoogleFonts.plusJakartaSans(
                 fontSize: 15,
                 fontWeight: FontWeight.w500,
-                color: const Color(0xFFE4E1ED),
+                color: context.textColor,
               ),
             ),
           ),
@@ -461,8 +586,8 @@ class _SettingsViewState extends ConsumerState<SettingsView> {
             onChanged: onChanged,
             activeColor: const Color(0xFF22C55E),
             activeTrackColor: const Color(0xFF22C55E).withOpacity(0.3),
-            inactiveThumbColor: const Color(0xFFC7C4D7),
-            inactiveTrackColor: const Color(0xFF34343D),
+            inactiveThumbColor: context.secondaryTextColor,
+            inactiveTrackColor: context.isDark ? const Color(0xFF34343D) : const Color(0xFFE2E8F0),
           ),
         ],
       ),
@@ -476,9 +601,10 @@ class _SettingsViewState extends ConsumerState<SettingsView> {
     String? trailingText,
     Color? trailingTextColor,
     bool isExternal = false,
+    VoidCallback? onTap,
   }) {
     return InkWell(
-      onTap: () {},
+      onTap: onTap,
       borderRadius: BorderRadius.circular(16),
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 12.0, horizontal: 16.0),
@@ -499,7 +625,7 @@ class _SettingsViewState extends ConsumerState<SettingsView> {
                 style: GoogleFonts.plusJakartaSans(
                   fontSize: 15,
                   fontWeight: FontWeight.w500,
-                  color: const Color(0xFFE4E1ED),
+                  color: context.textColor,
                 ),
               ),
             ),
@@ -509,14 +635,14 @@ class _SettingsViewState extends ConsumerState<SettingsView> {
                 style: GoogleFonts.plusJakartaSans(
                   fontSize: 12,
                   fontWeight: FontWeight.w600,
-                  color: trailingTextColor ?? const Color(0xFFC7C4D7),
+                  color: trailingTextColor ?? context.secondaryTextColor,
                 ),
               ),
               const SizedBox(width: 8),
             ],
             Icon(
               isExternal ? Icons.open_in_new_rounded : Icons.chevron_right_rounded,
-              color: const Color(0xFFC7C4D7).withOpacity(0.8),
+              color: context.secondaryTextColor.withOpacity(0.8),
               size: 18,
             ),
           ],

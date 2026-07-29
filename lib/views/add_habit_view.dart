@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:intl/intl.dart';
 import '../viewmodels/habit_viewmodel.dart';
 import '../models/habit_model.dart';
+import '../theme/theme_ext.dart';
 
 class AddHabitView extends ConsumerStatefulWidget {
-  const AddHabitView({Key? key}) : super(key: key);
+  const AddHabitView({super.key});
 
   @override
   ConsumerState<AddHabitView> createState() => _AddHabitViewState();
@@ -20,6 +22,57 @@ class _AddHabitViewState extends ConsumerState<AddHabitView> {
   bool _reminderEnabled = true;
   TimeOfDay _reminderTime = const TimeOfDay(hour: 8, minute: 0);
   int _selectedColorIndex = 0;
+
+  // Specific Frequency Configs
+  String _repeatType = 'Interval'; // 'Interval' or 'Monthly Dates'
+  int _repeatInterval = 2;
+  DateTime _startDate = DateTime.now().add(const Duration(days: 1));
+
+  String _formatStartDate(DateTime date) {
+    final now = DateTime.now();
+    final tomorrow = DateTime(now.year, now.month, now.day + 1);
+    final isTomorrow = date.year == tomorrow.year &&
+        date.month == tomorrow.month &&
+        date.day == tomorrow.day;
+    final formatted = DateFormat('MMM d').format(date);
+    return isTomorrow ? 'Tomorrow, $formatted' : formatted;
+  }
+
+  void _selectStartDate() async {
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: _startDate,
+      firstDate: DateTime.now(),
+      lastDate: DateTime.now().add(const Duration(days: 365)),
+      builder: (context, child) {
+        return Theme(
+          data: context.isDark
+              ? ThemeData.dark().copyWith(
+                  colorScheme: const ColorScheme.dark(
+                    primary: Color(0xFF22C55E),
+                    onPrimary: Color(0xFF0F172A),
+                    surface: Color(0xFF1E293B),
+                    onSurface: Colors.white,
+                  ),
+                )
+              : ThemeData.light().copyWith(
+                  colorScheme: const ColorScheme.light(
+                    primary: Color(0xFF22C55E),
+                    onPrimary: Colors.white,
+                    surface: Colors.white,
+                    onSurface: Color(0xFF0F172A),
+                  ),
+                ),
+          child: child!,
+        );
+      },
+    );
+    if (picked != null) {
+      setState(() {
+        _startDate = picked;
+      });
+    }
+  }
 
   final List<Map<String, dynamic>> _iconsList = [
     {"name": "water_drop", "icon": Icons.water_drop_rounded, "label": "Hydration"},
@@ -62,14 +115,23 @@ class _AddHabitViewState extends ConsumerState<AddHabitView> {
       initialTime: _reminderTime,
       builder: (context, child) {
         return Theme(
-          data: ThemeData.dark().copyWith(
-            colorScheme: const ColorScheme.dark(
-              primary: Color(0xFF8083FF),
-              onPrimary: Color(0xFF0F172A),
-              surface: Color(0xFF1E293B),
-              onSurface: Colors.white,
-            ),
-          ),
+          data: context.isDark
+              ? ThemeData.dark().copyWith(
+                  colorScheme: const ColorScheme.dark(
+                    primary: Color(0xFF8083FF),
+                    onPrimary: Color(0xFF0F172A),
+                    surface: Color(0xFF1E293B),
+                    onSurface: Colors.white,
+                  ),
+                )
+              : ThemeData.light().copyWith(
+                  colorScheme: const ColorScheme.light(
+                    primary: Color(0xFF8083FF),
+                    onPrimary: Colors.white,
+                    surface: Colors.white,
+                    onSurface: Color(0xFF0F172A),
+                  ),
+                ),
           child: child!,
         );
       },
@@ -116,6 +178,11 @@ class _AddHabitViewState extends ConsumerState<AddHabitView> {
       logs: {},
       createdAt: DateTime.now().toIso8601String(),
       reminderTime: _reminderEnabled ? formatTime : null,
+      frequency: _frequency,
+      selectedDays: _frequency == 'Weekly' ? _selectedDays : null,
+      repeatType: _frequency == 'Specific' ? _repeatType : null,
+      repeatInterval: _frequency == 'Specific' ? _repeatInterval : null,
+      startDate: _frequency == 'Specific' ? _startDate.toIso8601String() : null,
     );
 
     final vm = ref.read(habitViewModelProvider.notifier);
@@ -134,12 +201,12 @@ class _AddHabitViewState extends ConsumerState<AddHabitView> {
     final themeColor = _colorsList[_selectedColorIndex]['color'] as Color;
 
     return Scaffold(
-      backgroundColor: const Color(0xFF0F172A),
+      backgroundColor: context.bgColor,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.close_rounded, color: Color(0xFFC7C4D7), size: 28),
+          icon: Icon(Icons.close_rounded, color: context.secondaryTextColor, size: 28),
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
@@ -147,7 +214,7 @@ class _AddHabitViewState extends ConsumerState<AddHabitView> {
           style: GoogleFonts.plusJakartaSans(
             fontSize: 18,
             fontWeight: FontWeight.w600,
-            color: const Color(0xFFE4E1ED),
+            color: context.textColor,
           ),
         ),
         centerTitle: true,
@@ -176,22 +243,26 @@ class _AddHabitViewState extends ConsumerState<AddHabitView> {
               style: GoogleFonts.plusJakartaSans(
                 fontSize: 13,
                 fontWeight: FontWeight.w600,
-                color: const Color(0xFFC7C4D7),
+                color: context.secondaryTextColor,
                 letterSpacing: 0.5,
               ),
             ),
             const SizedBox(height: 8),
             TextField(
               controller: _nameController,
-              style: GoogleFonts.plusJakartaSans(color: Colors.white, fontSize: 16),
+              style: GoogleFonts.plusJakartaSans(color: context.textColor, fontSize: 16),
               decoration: InputDecoration(
                 filled: true,
-                fillColor: const Color(0xFF1E293B),
+                fillColor: context.cardColor,
                 hintText: 'e.g., Read 20 pages',
-                hintStyle: GoogleFonts.plusJakartaSans(color: const Color(0xFF908FA0).withOpacity(0.5)),
+                hintStyle: GoogleFonts.plusJakartaSans(color: context.secondaryTextColor.withOpacity(0.5)),
                 enabledBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(color: Colors.white.withOpacity(0.08)),
+                  borderSide: BorderSide(
+                    color: context.isDark
+                        ? Colors.white.withOpacity(0.08)
+                        : Colors.black.withOpacity(0.08),
+                  ),
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
@@ -208,7 +279,7 @@ class _AddHabitViewState extends ConsumerState<AddHabitView> {
               style: GoogleFonts.plusJakartaSans(
                 fontSize: 13,
                 fontWeight: FontWeight.w600,
-                color: const Color(0xFFC7C4D7),
+                color: context.secondaryTextColor,
                 letterSpacing: 0.5,
               ),
             ),
@@ -241,10 +312,14 @@ class _AddHabitViewState extends ConsumerState<AddHabitView> {
                       decoration: BoxDecoration(
                         color: isSelected
                             ? themeColor.withOpacity(0.15)
-                            : const Color(0xFF1E293B),
+                            : context.cardColor,
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(
-                          color: isSelected ? themeColor : Colors.white.withOpacity(0.05),
+                          color: isSelected
+                              ? themeColor
+                              : (context.isDark
+                                  ? Colors.white.withOpacity(0.05)
+                                  : Colors.black.withOpacity(0.05)),
                           width: isSelected ? 2 : 1,
                         ),
                         boxShadow: isSelected
@@ -258,7 +333,7 @@ class _AddHabitViewState extends ConsumerState<AddHabitView> {
                       ),
                       child: Icon(
                         iconItem['icon'] as IconData,
-                        color: isSelected ? themeColor : const Color(0xFFC7C4D7),
+                        color: isSelected ? themeColor : context.secondaryTextColor,
                       ),
                     ),
                   );
@@ -267,106 +342,372 @@ class _AddHabitViewState extends ConsumerState<AddHabitView> {
             ),
             const SizedBox(height: 28),
 
-            // Frequency Selection
-            Text(
-              'Frequency',
-              style: GoogleFonts.plusJakartaSans(
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
-                color: const Color(0xFFC7C4D7),
-                letterSpacing: 0.5,
-              ),
-            ),
-            const SizedBox(height: 12),
+            // Frequency Selection Card
             Container(
-              padding: const EdgeInsets.all(4),
+              padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
-                color: const Color(0xFF1E293B),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.white.withOpacity(0.05)),
+                color: context.cardColor,
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(
+                  color: context.isDark
+                      ? Colors.white.withOpacity(0.06)
+                      : Colors.black.withOpacity(0.06),
+                ),
               ),
-              child: Row(
-                children: ['Daily', 'Weekly', 'Specific'].map((freq) {
-                  final isSelected = _frequency == freq;
-                  return Expanded(
-                    child: GestureDetector(
-                      onTap: () {
-                        setState(() {
-                          _frequency = freq;
-                        });
-                      },
-                      child: AnimatedContainer(
-                        duration: const Duration(milliseconds: 200),
-                        padding: const EdgeInsets.symmetric(vertical: 8),
-                        alignment: Alignment.center,
-                        decoration: BoxDecoration(
-                          color: isSelected
-                              ? Colors.white.withOpacity(0.08)
-                              : Colors.transparent,
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Text(
-                          freq,
-                          style: GoogleFonts.plusJakartaSans(
-                            color: isSelected ? Colors.white : const Color(0xFFC7C4D7),
-                            fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
-                            fontSize: 13,
-                          ),
-                        ),
-                      ),
-                    ),
-                  );
-                }).toList(),
-              ),
-            ),
-            const SizedBox(height: 16),
-
-            // Day Chips
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: List.generate(7, (index) {
-                final days = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
-                final isSelected = _selectedDays[index];
-
-                return GestureDetector(
-                  onTap: () {
-                    setState(() {
-                      _selectedDays[index] = !_selectedDays[index];
-                    });
-                  },
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 200),
-                    width: 36,
-                    height: 36,
-                    alignment: Alignment.center,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: isSelected ? themeColor : Colors.transparent,
-                      border: Border.all(
-                        color: isSelected ? Colors.transparent : const Color(0xFF464554),
-                        width: 1.5,
-                      ),
-                      boxShadow: isSelected
-                          ? [
-                              BoxShadow(
-                                color: themeColor.withOpacity(0.3),
-                                blurRadius: 8,
-                                offset: const Offset(0, 4),
-                              ),
-                            ]
-                          : null,
-                    ),
-                    child: Text(
-                      days[index],
-                      style: GoogleFonts.plusJakartaSans(
-                        color: isSelected ? const Color(0xFF0F172A) : const Color(0xFFC7C4D7),
-                        fontWeight: FontWeight.bold,
-                        fontSize: 13,
-                      ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Frequency',
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: context.secondaryTextColor,
+                      letterSpacing: 0.5,
                     ),
                   ),
-                );
-              }),
+                  const SizedBox(height: 16),
+
+                  // Top Segmented Control (Daily, Weekly, Specific)
+                  Container(
+                    padding: const EdgeInsets.all(4),
+                    decoration: BoxDecoration(
+                      color: context.bgColor,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Row(
+                      children: ['Daily', 'Weekly', 'Specific'].map((freq) {
+                        final isSelected = _frequency == freq;
+                        return Expanded(
+                          child: GestureDetector(
+                            onTap: () {
+                              setState(() {
+                                _frequency = freq;
+                              });
+                            },
+                            child: AnimatedContainer(
+                              duration: const Duration(milliseconds: 200),
+                              padding: const EdgeInsets.symmetric(vertical: 10),
+                              alignment: Alignment.center,
+                              decoration: BoxDecoration(
+                                color: isSelected
+                                    ? const Color(0xFF22C55E)
+                                    : Colors.transparent,
+                                borderRadius: BorderRadius.circular(10),
+                                boxShadow: isSelected
+                                    ? [
+                                        BoxShadow(
+                                          color: const Color(0xFF22C55E).withOpacity(0.2),
+                                          blurRadius: 8,
+                                          offset: const Offset(0, 2),
+                                        )
+                                      ]
+                                    : null,
+                              ),
+                              child: Text(
+                                freq,
+                                style: GoogleFonts.plusJakartaSans(
+                                  color: isSelected
+                                      ? (context.isDark ? const Color(0xFF0F172A) : Colors.white)
+                                      : const Color(0xFF94A3B8),
+                                  fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
+                                  fontSize: 13,
+                                ),
+                              ),
+                            ),
+                          ),
+                        );
+                      }).toList(),
+                    ),
+                  ),
+
+                  // Conditional Weekly View (Day Chips)
+                  if (_frequency == 'Weekly') ...[
+                    const SizedBox(height: 20),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: List.generate(7, (index) {
+                        final days = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
+                        final isSelected = _selectedDays[index];
+
+                        return GestureDetector(
+                          onTap: () {
+                            setState(() {
+                              _selectedDays[index] = !_selectedDays[index];
+                            });
+                          },
+                          child: AnimatedContainer(
+                            duration: const Duration(milliseconds: 200),
+                            width: 36,
+                            height: 36,
+                            alignment: Alignment.center,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: isSelected ? themeColor : Colors.transparent,
+                              border: Border.all(
+                                color: isSelected
+                                    ? Colors.transparent
+                                    : (context.isDark
+                                        ? const Color(0xFF464554)
+                                        : const Color(0xFFCBD5E1)),
+                                width: 1.5,
+                              ),
+                              boxShadow: isSelected
+                                  ? [
+                                      BoxShadow(
+                                        color: themeColor.withOpacity(0.3),
+                                        blurRadius: 8,
+                                        offset: const Offset(0, 4),
+                                      ),
+                                    ]
+                                  : null,
+                            ),
+                            child: Text(
+                              days[index],
+                              style: GoogleFonts.plusJakartaSans(
+                                color: isSelected
+                                    ? (context.isDark ? const Color(0xFF0F172A) : Colors.white)
+                                    : context.secondaryTextColor,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 13,
+                              ),
+                            ),
+                          ),
+                        );
+                      }),
+                    ),
+                  ],
+
+                  // Conditional Specific View (Interval controls)
+                  if (_frequency == 'Specific') ...[
+                    const SizedBox(height: 24),
+
+                    // Subsection Title: Repeat Type
+                    Text(
+                      'Repeat Type',
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: context.secondaryTextColor,
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    Row(
+                      children: ['Interval', 'Monthly Dates'].map((type) {
+                        final isSelected = _repeatType == type;
+                        return Expanded(
+                          child: GestureDetector(
+                            onTap: () {
+                              setState(() {
+                                _repeatType = type;
+                              });
+                            },
+                            child: Container(
+                              margin: EdgeInsets.only(
+                                right: type == 'Interval' ? 8.0 : 0.0,
+                                left: type == 'Monthly Dates' ? 8.0 : 0.0,
+                              ),
+                              padding: const EdgeInsets.symmetric(vertical: 12),
+                              alignment: Alignment.center,
+                              decoration: BoxDecoration(
+                                color: isSelected
+                                    ? const Color(0xFF22C55E).withOpacity(0.12)
+                                    : context.bgColor.withOpacity(0.4),
+                                borderRadius: BorderRadius.circular(10),
+                                border: Border.all(
+                                  color: isSelected
+                                      ? const Color(0xFF22C55E)
+                                      : (context.isDark
+                                          ? const Color(0xFF464554).withOpacity(0.5)
+                                          : const Color(0xFFCBD5E1)),
+                                  width: 1.5,
+                                ),
+                              ),
+                              child: Text(
+                                type,
+                                style: GoogleFonts.plusJakartaSans(
+                                  color: isSelected ? const Color(0xFF22C55E) : context.secondaryTextColor,
+                                  fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
+                                  fontSize: 13,
+                                ),
+                              ),
+                            ),
+                          ),
+                        );
+                      }).toList(),
+                    ),
+
+                    if (_repeatType == 'Interval') ...[
+                      const SizedBox(height: 24),
+
+                      // Number Input Field: Repeat every with a stepper
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            'Repeat every',
+                            style: GoogleFonts.plusJakartaSans(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w600,
+                              color: context.textColor,
+                            ),
+                          ),
+                          Row(
+                            children: [
+                              GestureDetector(
+                                onTap: () {
+                                  if (_repeatInterval > 1) {
+                                    setState(() {
+                                      _repeatInterval--;
+                                    });
+                                  }
+                                },
+                                child: Container(
+                                  width: 36,
+                                  height: 36,
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    color: context.bgColor,
+                                    border: Border.all(
+                                      color: context.isDark
+                                          ? Colors.white.withOpacity(0.08)
+                                          : Colors.black.withOpacity(0.08),
+                                    ),
+                                  ),
+                                  alignment: Alignment.center,
+                                  child: const Icon(
+                                    Icons.remove,
+                                    color: Color(0xFF22C55E),
+                                    size: 18,
+                                  ),
+                                ),
+                              ),
+                              Container(
+                                width: 50,
+                                alignment: Alignment.center,
+                                child: Text(
+                                  '$_repeatInterval',
+                                  style: GoogleFonts.plusJakartaSans(
+                                    color: context.textColor,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 16,
+                                  ),
+                                ),
+                              ),
+                              GestureDetector(
+                                onTap: () {
+                                  setState(() {
+                                    _repeatInterval++;
+                                  });
+                                },
+                                child: Container(
+                                  width: 36,
+                                  height: 36,
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    color: context.bgColor,
+                                    border: Border.all(
+                                      color: context.isDark
+                                          ? Colors.white.withOpacity(0.08)
+                                          : Colors.black.withOpacity(0.08),
+                                    ),
+                                  ),
+                                  alignment: Alignment.center,
+                                  child: const Icon(
+                                    Icons.add,
+                                    color: Color(0xFF22C55E),
+                                    size: 18,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Text(
+                                'days',
+                                style: GoogleFonts.plusJakartaSans(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w500,
+                                  color: context.secondaryTextColor,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ],
+
+                    const SizedBox(height: 24),
+
+                    // Date Picker Row: First instance on
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'First instance on',
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w600,
+                            color: context.textColor,
+                          ),
+                        ),
+                        GestureDetector(
+                          onTap: _selectStartDate,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                            decoration: BoxDecoration(
+                              color: context.bgColor,
+                              borderRadius: BorderRadius.circular(10),
+                              border: Border.all(
+                                color: context.isDark
+                                    ? Colors.white.withOpacity(0.08)
+                                    : Colors.black.withOpacity(0.08),
+                              ),
+                            ),
+                            child: Row(
+                              children: [
+                                Text(
+                                  _formatStartDate(_startDate),
+                                  style: GoogleFonts.plusJakartaSans(
+                                    color: context.textColor,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 13,
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                const Icon(
+                                  Icons.calendar_month_rounded,
+                                  color: Color(0xFF22C55E),
+                                  size: 16,
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+
+                    const SizedBox(height: 20),
+
+                    // Subtle Helper Text
+                    Builder(
+                      builder: (context) {
+                        final DateFormat f = DateFormat('MMM d');
+                        final d1 = f.format(_startDate);
+                        final d2 = f.format(_startDate.add(Duration(days: _repeatInterval)));
+                        final d3 = f.format(_startDate.add(Duration(days: _repeatInterval * 2)));
+                        return Text(
+                          'Your next habit check-in will be scheduled for $d1, $d2, $d3...',
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 12,
+                            color: context.secondaryTextColor,
+                            height: 1.4,
+                          ),
+                        );
+                      },
+                    ),
+                  ],
+                ],
+              ),
             ),
             const SizedBox(height: 28),
 
@@ -382,7 +723,7 @@ class _AddHabitViewState extends ConsumerState<AddHabitView> {
                       style: GoogleFonts.plusJakartaSans(
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
-                        color: Colors.white,
+                        color: context.textColor,
                       ),
                     ),
                     const SizedBox(height: 2),
@@ -390,7 +731,7 @@ class _AddHabitViewState extends ConsumerState<AddHabitView> {
                       'Push notifications to keep you on track',
                       style: GoogleFonts.plusJakartaSans(
                         fontSize: 11,
-                        color: const Color(0xFFC7C4D7),
+                        color: context.secondaryTextColor,
                       ),
                     ),
                   ],
@@ -404,8 +745,8 @@ class _AddHabitViewState extends ConsumerState<AddHabitView> {
                   },
                   activeColor: themeColor,
                   activeTrackColor: themeColor.withOpacity(0.3),
-                  inactiveThumbColor: const Color(0xFFC7C4D7),
-                  inactiveTrackColor: const Color(0xFF34343D),
+                  inactiveThumbColor: context.secondaryTextColor,
+                  inactiveTrackColor: context.isDark ? const Color(0xFF34343D) : const Color(0xFFE2E8F0),
                 ),
               ],
             ),
@@ -416,9 +757,13 @@ class _AddHabitViewState extends ConsumerState<AddHabitView> {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF1E293B),
+                  color: context.cardColor,
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.white.withOpacity(0.05)),
+                  border: Border.all(
+                    color: context.isDark
+                        ? Colors.white.withOpacity(0.05)
+                        : Colors.black.withOpacity(0.05),
+                  ),
                 ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -430,7 +775,7 @@ class _AddHabitViewState extends ConsumerState<AddHabitView> {
                         Text(
                           'Time',
                           style: GoogleFonts.plusJakartaSans(
-                            color: Colors.white,
+                            color: context.textColor,
                             fontSize: 15,
                             fontWeight: FontWeight.w500,
                           ),
@@ -443,14 +788,16 @@ class _AddHabitViewState extends ConsumerState<AddHabitView> {
                       child: Container(
                         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                         decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.05),
+                          color: context.textColor.withOpacity(0.05),
                           borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: Colors.white.withOpacity(0.1)),
+                          border: Border.all(
+                            color: context.textColor.withOpacity(0.1),
+                          ),
                         ),
                         child: Text(
                           _reminderTime.format(context),
                           style: GoogleFonts.plusJakartaSans(
-                            color: Colors.white,
+                            color: context.textColor,
                             fontWeight: FontWeight.bold,
                             fontSize: 13,
                           ),
@@ -466,7 +813,11 @@ class _AddHabitViewState extends ConsumerState<AddHabitView> {
             Container(
               padding: const EdgeInsets.only(top: 20),
               decoration: BoxDecoration(
-                border: Border(top: BorderSide(color: Colors.white.withOpacity(0.05))),
+                border: Border(
+                  top: BorderSide(
+                    color: context.textColor.withOpacity(0.05),
+                  ),
+                ),
               ),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -476,7 +827,7 @@ class _AddHabitViewState extends ConsumerState<AddHabitView> {
                     style: GoogleFonts.plusJakartaSans(
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
-                      color: Colors.white,
+                      color: context.textColor,
                     ),
                   ),
                   Row(
@@ -499,7 +850,10 @@ class _AddHabitViewState extends ConsumerState<AddHabitView> {
                             shape: BoxShape.circle,
                             color: color,
                             border: isSelected
-                                ? Border.all(color: Colors.white, width: 2)
+                                ? Border.all(
+                                    color: context.isDark ? Colors.white : Colors.black,
+                                    width: 2,
+                                  )
                                 : null,
                             boxShadow: isSelected
                                 ? [
@@ -512,7 +866,7 @@ class _AddHabitViewState extends ConsumerState<AddHabitView> {
                           ),
                         ),
                       );
-                    }),
+                    }).toList(),
                   ),
                 ],
               ),

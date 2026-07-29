@@ -1,4 +1,5 @@
 import 'package:habit_flow/models/user_profile_model.dart';
+import 'package:intl/intl.dart';
 import 'package:path/path.dart';
 import 'package:sqflite/sqflite.dart';
 import '../models/habit_model.dart';
@@ -9,7 +10,7 @@ class DatabaseHelper {
   DatabaseHelper._init();
   Future<Database> get database async {
     if (_database != null) return _database!;
-    _database = await _initDB('habitflow.db');
+    _database = await _initDB('habitflow1.db');
     return _database!;
   }
 
@@ -18,7 +19,7 @@ class DatabaseHelper {
     final path = join(dbPath, filePath);
     return await openDatabase(
       path,
-      version: 2,
+      version: 6,
       onCreate: _createDB,
       onUpgrade: _onUpgrade,
     );
@@ -41,7 +42,13 @@ streakDays INTEGER NOT NULL,
 completedDates TEXT NOT NULL,
 logs TEXT NOT NULL,
 createdAt TEXT NOT NULL,
-reminderTime TEXT
+reminderTime TEXT,
+frequency TEXT NOT NULL DEFAULT 'Daily',
+selectedDays TEXT,
+repeatType TEXT,
+repeatInterval INTEGER,
+startDate TEXT,
+isSynced INTEGER NOT NULL DEFAULT 1
 )
 ''');
 
@@ -50,6 +57,7 @@ reminderTime TEXT
     id INTEGER PRIMARY KEY DEFAULT 1,
     name TEXT NOT NULL,
     avatarUrl TEXT NOT NULL,
+    avatarData BLOB,
     overallStreak INTEGER NOT NULL,
     joinedDate TEXT NOT NULL
   )
@@ -59,10 +67,23 @@ reminderTime TEXT
   CREATE TABLE users (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     email TEXT UNIQUE NOT NULL,
-    password TEXT NOT NULL,
-    isLoggedIn INTEGER NOT NULL DEFAULT 0
+    uid TEXT NOT NULL,
+    isLoggedIn INTEGER NOT NULL DEFAULT 0,
+    isCloudSyncEnabled INTEGER NOT NULL DEFAULT 0
   )
 ''');
+
+    await db.execute('''
+  CREATE TABLE app_settings (
+    key TEXT PRIMARY KEY,
+    value TEXT NOT NULL
+  )
+''');
+
+    // Seed default settings
+    await db.insert('app_settings', {'key': 'theme_mode', 'value': 'dark'});
+    await db.insert('app_settings', {'key': 'notifications_enabled', 'value': 'true'});
+    await db.insert('app_settings', {'key': 'sound_enabled', 'value': 'true'});
 
     // Seed default initial data
     await _seedInitialData(db);
@@ -78,6 +99,45 @@ reminderTime TEXT
     isLoggedIn INTEGER NOT NULL DEFAULT 0
   )
 ''');
+    }
+    if (oldVersion < 3) {
+      await db.execute("ALTER TABLE habits ADD COLUMN frequency TEXT NOT NULL DEFAULT 'Daily'");
+      await db.execute("ALTER TABLE habits ADD COLUMN selectedDays TEXT");
+      await db.execute("ALTER TABLE habits ADD COLUMN repeatType TEXT");
+      await db.execute("ALTER TABLE habits ADD COLUMN repeatInterval INTEGER");
+      await db.execute("ALTER TABLE habits ADD COLUMN startDate TEXT");
+    }
+    if (oldVersion < 4) {
+      // Recreate users table to remove password field and add uid and isCloudSyncEnabled
+      await db.execute("DROP TABLE IF EXISTS users");
+      await db.execute('''
+  CREATE TABLE users (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    email TEXT UNIQUE NOT NULL,
+    uid TEXT NOT NULL,
+    isLoggedIn INTEGER NOT NULL DEFAULT 0,
+    isCloudSyncEnabled INTEGER NOT NULL DEFAULT 0
+  )
+''');
+      // Add isSynced column to habits
+      await db.execute("ALTER TABLE habits ADD COLUMN isSynced INTEGER NOT NULL DEFAULT 1");
+    }
+    if (oldVersion < 5) {
+      // Add avatarData to user_profile if not exists
+      try {
+        await db.execute("ALTER TABLE user_profile ADD COLUMN avatarData BLOB");
+      } catch (_) {}
+    }
+    if (oldVersion < 6) {
+      await db.execute('''
+        CREATE TABLE IF NOT EXISTS app_settings (
+          key TEXT PRIMARY KEY,
+          value TEXT NOT NULL
+        )
+      ''');
+      await db.insert('app_settings', {'key': 'theme_mode', 'value': 'dark'}, conflictAlgorithm: ConflictAlgorithm.ignore);
+      await db.insert('app_settings', {'key': 'notifications_enabled', 'value': 'true'}, conflictAlgorithm: ConflictAlgorithm.ignore);
+      await db.insert('app_settings', {'key': 'sound_enabled', 'value': 'true'}, conflictAlgorithm: ConflictAlgorithm.ignore);
     }
   }
 
@@ -160,14 +220,14 @@ reminderTime TEXT
       await db.insert('habits', habit.toMap());
     }
 
-    await db.insert('user_profile', {
-      'id': 1,
-      'name': 'Alex',
-      'avatarUrl':
-          'https://lh3.googleusercontent.com/aida-public/AB6AXuDKlvm_A9K0_F8V6M5ORmr7r6LIbFgEuGO0PPhz2MnxOxDF3wrsTg4ta89sWAyWjxlzrw8GQ3LqLBgPSz3UhWv3ONRhs4bXt4rWH3W87Zv_nkk6VvXrunY30IEHDnL9IN92E8LlToct5ftLDXwHte0FD_Lw8sx78FQ_duB4IVwmBqjylDb1TsMKw4EBqqonG2urYYABa_GoHm90tqklwMlldvERKmtRUOwneF_3X5TVfAo7s19p7sm1830vxd0YuhjbMHGR-VGLV1_S',
-      'overallStreak': 12,
-      'joinedDate': 'October 2024',
-    });
+    // await db.insert('user_profile', {
+    //   'id': 1,
+    //   'name': 'Alex',
+    //   'avatarUrl':
+    //       'https://lh3.googleusercontent.com/aida-public/AB6AXuDKlvm_A9K0_F8V6M5ORmr7r6LIbFgEuGO0PPhz2MnxOxDF3wrsTg4ta89sWAyWjxlzrw8GQ3LqLBgPSz3UhWv3ONRhs4bXt4rWH3W87Zv_nkk6VvXrunY30IEHDnL9IN92E8LlToct5ftLDXwHte0FD_Lw8sx78FQ_duB4IVwmBqjylDb1TsMKw4EBqqonG2urYYABa_GoHm90tqklwMlldvERKmtRUOwneF_3X5TVfAo7s19p7sm1830vxd0YuhjbMHGR-VGLV1_S',
+    //   'overallStreak': 12,
+    //   'joinedDate': 'October 2024',
+    // });
   }
 
   // CRUD Operations
@@ -230,14 +290,15 @@ reminderTime TEXT
   }
 
   // User Authentication Helper Methods
-  Future<void> registerUser(String email, String password) async {
+  Future<void> registerUser(String email, String uid) async {
     final db = await instance.database;
     await db.insert(
       'users',
       {
         'email': email,
-        'password': password,
+        'uid': uid,
         'isLoggedIn': 1,
+        'isCloudSyncEnabled': 0,
       },
       conflictAlgorithm: ConflictAlgorithm.replace,
     );
@@ -247,47 +308,42 @@ reminderTime TEXT
     final defaultProfile = {
       'id': 1,
       'name': profileName[0].toUpperCase() + profileName.substring(1),
-      'avatarUrl': 'https://lh3.googleusercontent.com/aida-public/AB6AXuDKlvm_A9K0_F8V6M5ORmr7r6LIbFgEuGO0PPhz2MnxOxDF3wrsTg4ta89sWAyWjxlzrw8GQ3LqLBgPSz3UhWv3ONRhs4bXt4rWH3W87Zv_nkk6VvXrunY30IEHDnL9IN92E8LlToct5ftLDXwHte0FD_Lw8sx78FQ_duB4IVwmBqjylDb1TsMKw4EBqqonG2urYYABa_GoHm90tqklwMlldvERKmtRUOwneF_3X5TVfAo7s19p7sm1830vxd0YuhjbMHGR-VGLV1_S',
+      'avatarUrl': '',
       'overallStreak': 12,
       'joinedDate': 'October 2024',
     };
     await db.insert('user_profile', defaultProfile, conflictAlgorithm: ConflictAlgorithm.replace);
   }
 
-  Future<bool> verifyAndLoginUser(String email, String password) async {
+  Future<bool> verifyAndLoginUser(String email, String uid) async {
     final db = await instance.database;
-    final List<Map<String, dynamic>> maps = await db.query(
+    
+    // Set all other users to logged out first
+    await db.update('users', {'isLoggedIn': 0});
+    
+    // Set isLoggedIn to 1 for this user
+    await db.insert(
       'users',
-      where: 'email = ? AND password = ?',
-      whereArgs: [email, password],
+      {
+        'email': email,
+        'uid': uid,
+        'isLoggedIn': 1,
+      },
+      conflictAlgorithm: ConflictAlgorithm.replace,
     );
 
-    if (maps.isNotEmpty) {
-      // Set all other users to logged out first
-      await db.update('users', {'isLoggedIn': 0});
-      
-      // Set isLoggedIn to 1 for this user
-      await db.update(
-        'users',
-        {'isLoggedIn': 1},
-        where: 'email = ?',
-        whereArgs: [email],
-      );
-
-      // Load/Restore user profile name based on email
-      final profileName = email.split('@')[0];
-      final defaultProfile = {
-        'id': 1,
-        'name': profileName[0].toUpperCase() + profileName.substring(1),
-        'avatarUrl': 'https://lh3.googleusercontent.com/aida-public/AB6AXuDKlvm_A9K0_F8V6M5ORmr7r6LIbFgEuGO0PPhz2MnxOxDF3wrsTg4ta89sWAyWjxlzrw8GQ3LqLBgPSz3UhWv3ONRhs4bXt4rWH3W87Zv_nkk6VvXrunY30IEHDnL9IN92E8LlToct5ftLDXwHte0FD_Lw8sx78FQ_duB4IVwmBqjylDb1TsMKw4EBqqonG2urYYABa_GoHm90tqklwMlldvERKmtRUOwneF_3X5TVfAo7s19p7sm1830vxd0YuhjbMHGR-VGLV1_S',
-        'overallStreak': 12,
-        'joinedDate': 'October 2024',
-      };
-      await db.insert('user_profile', defaultProfile, conflictAlgorithm: ConflictAlgorithm.replace);
-      
-      return true;
-    }
-    return false;
+    // Load/Restore user profile name based on email
+    final profileName = email.split('@')[0];
+    final defaultProfile = {
+      'id': 1,
+      'name': profileName[0].toUpperCase() + profileName.substring(1),
+      'avatarUrl': '',
+      'overallStreak': 12,
+      'joinedDate': DateFormat('MMMM yyyy').format(DateTime.now()),
+    };
+    await db.insert('user_profile', defaultProfile, conflictAlgorithm: ConflictAlgorithm.replace);
+    
+    return true;
   }
 
   Future<bool> checkAutoLogin() async {
@@ -317,5 +373,92 @@ reminderTime TEXT
       return maps.first['email'] as String?;
     }
     return null;
+  }
+
+  Future<String?> getLoggedInUserUid() async {
+    final db = await instance.database;
+    final List<Map<String, dynamic>> maps = await db.query(
+      'users',
+      where: 'isLoggedIn = 1',
+    );
+    if (maps.isNotEmpty) {
+      return maps.first['uid'] as String?;
+    }
+    return null;
+  }
+
+  Future<List<HabitModel>> getUnsyncedHabits() async {
+    final db = await instance.database;
+    final result = await db.query(
+      'habits',
+      where: 'isSynced = 0',
+    );
+    return result.map((json) => HabitModel.fromMap(json)).toList();
+  }
+
+  Future<void> markHabitSynced(String id) async {
+    final db = await instance.database;
+    await db.update(
+      'habits',
+      {'isSynced': 1},
+      where: 'id = ?',
+      whereArgs: [id],
+    );
+  }
+
+  Future<void> markHabitUnsynced(String id) async {
+    final db = await instance.database;
+    await db.update(
+      'habits',
+      {'isSynced': 0},
+      where: 'id = ?',
+      whereArgs: [id],
+    );
+  }
+
+  Future<void> updateCloudSyncSetting(String email, bool enabled) async {
+    final db = await instance.database;
+    await db.update(
+      'users',
+      {'isCloudSyncEnabled': enabled ? 1 : 0},
+      where: 'email = ?',
+      whereArgs: [email],
+    );
+  }
+
+  Future<bool> isCloudSyncEnabled(String email) async {
+    final db = await instance.database;
+    final List<Map<String, dynamic>> maps = await db.query(
+      'users',
+      columns: ['isCloudSyncEnabled'],
+      where: 'email = ?',
+      whereArgs: [email],
+    );
+    if (maps.isNotEmpty) {
+      return (maps.first['isCloudSyncEnabled'] as int? ?? 0) == 1;
+    }
+    return false;
+  }
+
+  Future<String> getSetting(String key, String defaultValue) async {
+    final db = await instance.database;
+    final List<Map<String, dynamic>> maps = await db.query(
+      'app_settings',
+      where: 'key = ?',
+      whereArgs: [key],
+    );
+    if (maps.isNotEmpty) {
+      return maps.first['value'] as String;
+    }
+    return defaultValue;
+  }
+
+  Future<void> saveSetting(String key, String value) async {
+    final db = await instance.database;
+    await db.insert(
+      'app_settings',
+      {'key': key, 'value': value},
+      conflictAlgorithm: ConflictAlgorithm.replace,
+    );
   }
 }

@@ -1,49 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:habit_flow/widgets/habitCard.dart';
+import 'package:intl/intl.dart';
 import '../viewmodels/habit_viewmodel.dart';
+import '../theme/theme_ext.dart';
 import 'add_habit_view.dart';
 import 'habit_detail_view.dart';
 
 class TodayView extends ConsumerWidget {
-  const TodayView({Key? key}) : super(key: key);
-
-  IconData _getIconData(String iconName) {
-    switch (iconName) {
-      case 'water_drop':
-        return Icons.water_drop_rounded;
-      case 'menu_book':
-      case 'book':
-        return Icons.menu_book_rounded;
-      case 'fitness_center':
-        return Icons.fitness_center_rounded;
-      case 'self_improvement':
-      case 'psychology':
-        return Icons.self_improvement_rounded;
-      case 'directions_run':
-        return Icons.directions_run_rounded;
-      case 'restaurant':
-      case 'nutrition':
-        return Icons.restaurant_rounded;
-      default:
-        return Icons.star_rounded;
-    }
-  }
-
-  Color _getCategoryColor(String category) {
-    switch (category.toLowerCase()) {
-      case 'hydration':
-        return const Color(0xFF8083FF); // Primary Purple
-      case 'reading':
-        return const Color(0xFFFFB783); // Tertiary Light Orange
-      case 'fitness':
-        return const Color(0xFFFFB690); // Secondary Coral
-      case 'mindfulness':
-        return const Color(0xFFFFDCC5); // Muted Beige/Pink
-      default:
-        return const Color(0xFFC0C1FF);
-    }
-  }
+  const TodayView({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -51,7 +17,7 @@ class TodayView extends ConsumerWidget {
     final vm = ref.read(habitViewModelProvider.notifier);
 
     return Scaffold(
-      backgroundColor: const Color(0xFF0F172A),
+      backgroundColor: context.bgColor,
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
@@ -66,30 +32,33 @@ class TodayView extends ConsumerWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Hello, ${state.userProfile?.name ?? "Alex Morgan"} 👋',
+                        'Hello, ${state.userProfile?.name ?? ""} 👋',
                         style: GoogleFonts.plusJakartaSans(
                           fontSize: 20,
                           fontWeight: FontWeight.w600,
-                          color: const Color(0xFFE4E1ED),
+                          color: context.textColor,
                         ),
                       ),
                       Text(
-                        'Tuesday, Oct 24',
+                        DateFormat('EEEE, MMM d').format(DateTime.now()),
                         style: GoogleFonts.plusJakartaSans(
                           fontSize: 12,
-                          color: const Color(0xFFC7C4D7),
+                          color: context.secondaryTextColor,
                         ),
                       ),
                     ],
                   ),
                   CircleAvatar(
                     radius: 20,
-                    backgroundImage: state.userProfile?.avatarUrl != null && state.userProfile!.avatarUrl.isNotEmpty
-                        ? NetworkImage(state.userProfile!.avatarUrl)
-                        : null,
-                    backgroundColor: const Color(0xFF34343D),
-                    child: state.userProfile?.avatarUrl == null || state.userProfile!.avatarUrl.isEmpty
-                        ? const Icon(Icons.person, color: Color(0xFFC7C4D7))
+                    backgroundImage: state.userProfile?.avatarData != null
+                        ? MemoryImage(state.userProfile!.avatarData!)
+                        : (state.userProfile?.avatarUrl != null &&
+                                state.userProfile!.avatarUrl.isNotEmpty
+                            ? NetworkImage(state.userProfile!.avatarUrl) as ImageProvider
+                            : null),
+                    backgroundColor: context.isDark ? const Color(0xFF34343D) : const Color(0xFFE2E8F0),
+                    child: (state.userProfile == null || (state.userProfile!.avatarData == null && state.userProfile!.avatarUrl.isEmpty))
+                        ? Icon(Icons.person, color: context.secondaryTextColor)
                         : null,
                   ),
                 ],
@@ -100,9 +69,20 @@ class TodayView extends ConsumerWidget {
               Container(
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF1E293B).withOpacity(0.7),
+                  color: context.isDark ? const Color(0xFF1E293B).withOpacity(0.7) : Colors.white,
                   borderRadius: BorderRadius.circular(24),
-                  border: Border.all(color: Colors.white.withOpacity(0.06)),
+                  border: Border.all(
+                    color: context.isDark
+                        ? Colors.white.withOpacity(0.06)
+                        : Colors.black.withOpacity(0.06),
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(context.isDark ? 0.2 : 0.05),
+                      blurRadius: 10,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
                 ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -114,7 +94,7 @@ class TodayView extends ConsumerWidget {
                           'Overall Completion',
                           style: GoogleFonts.plusJakartaSans(
                             fontSize: 13,
-                            color: const Color(0xFFC7C4D7),
+                            color: context.secondaryTextColor,
                           ),
                         ),
                         const SizedBox(height: 4),
@@ -123,7 +103,7 @@ class TodayView extends ConsumerWidget {
                           style: GoogleFonts.plusJakartaSans(
                             fontSize: 36,
                             fontWeight: FontWeight.bold,
-                            color: const Color(0xFFE4E1ED),
+                            color: context.textColor,
                           ),
                         ),
                         const SizedBox(height: 12),
@@ -168,7 +148,9 @@ class TodayView extends ConsumerWidget {
                           CircularProgressIndicator(
                             value: state.completionPercentage / 100,
                             strokeWidth: 8,
-                            backgroundColor: const Color(0xFF34343D).withOpacity(0.5),
+                            backgroundColor: context.isDark
+                                ? const Color(0xFF34343D).withOpacity(0.5)
+                                : const Color(0xFFE2E8F0),
                             valueColor: const AlwaysStoppedAnimation<Color>(
                               Color(0xFF22C55E),
                             ),
@@ -194,10 +176,16 @@ class TodayView extends ConsumerWidget {
                   itemCount: 7,
                   separatorBuilder: (_, __) => const SizedBox(width: 12),
                   itemBuilder: (context, index) {
+                    DateTime now = DateTime.now();
                     final days = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
-                    final dateNum = 23 + index;
-                    final isActive = dateNum == 24;
-
+                    int dateNum =
+                        now.subtract(Duration(days: now.weekday - 1)).day +
+                        index;
+                    final isActive = dateNum == now.day;
+                    final lastDate = DateTime(now.year, now.month + 1, 0);
+                    if (dateNum > lastDate.day) {
+                      dateNum = dateNum - lastDate.day;
+                    }
                     return Column(
                       children: [
                         Text(
@@ -206,7 +194,7 @@ class TodayView extends ConsumerWidget {
                             fontSize: 12,
                             color: isActive
                                 ? const Color(0xFF22C55E)
-                                : const Color(0xFFC7C4D7),
+                                : context.secondaryTextColor,
                             fontWeight: isActive
                                 ? FontWeight.bold
                                 : FontWeight.normal,
@@ -238,8 +226,8 @@ class TodayView extends ConsumerWidget {
                               fontSize: 14,
                               fontWeight: FontWeight.bold,
                               color: isActive
-                                  ? const Color(0xFF0F172A)
-                                  : const Color(0xFFC7C4D7),
+                                  ? (context.isDark ? const Color(0xFF0F172A) : Colors.white)
+                                  : context.textColor,
                             ),
                           ),
                         ),
@@ -259,14 +247,7 @@ class TodayView extends ConsumerWidget {
                     style: GoogleFonts.plusJakartaSans(
                       fontSize: 18,
                       fontWeight: FontWeight.w600,
-                      color: const Color(0xFFE4E1ED),
-                    ),
-                  ),
-                  Text(
-                    "View All",
-                    style: GoogleFonts.plusJakartaSans(
-                      fontSize: 12,
-                      color: const Color(0xFF8083FF),
+                      color: context.textColor,
                     ),
                   ),
                 ],
@@ -279,13 +260,18 @@ class TodayView extends ConsumerWidget {
                   padding: const EdgeInsets.all(24),
                   alignment: Alignment.center,
                   decoration: BoxDecoration(
-                    color: const Color(0xFF1E293B).withOpacity(0.5),
+                    color: context.cardColor,
                     borderRadius: BorderRadius.circular(20),
+                    border: Border.all(
+                      color: context.isDark
+                          ? Colors.white.withOpacity(0.05)
+                          : Colors.black.withOpacity(0.05),
+                    ),
                   ),
                   child: Text(
                     'No habits created yet. Tap + to start!',
                     style: GoogleFonts.plusJakartaSans(
-                      color: const Color(0xFFC7C4D7),
+                      color: context.secondaryTextColor,
                       fontSize: 14,
                     ),
                   ),
@@ -293,105 +279,17 @@ class TodayView extends ConsumerWidget {
               else
                 ...state.habits.map((habit) {
                   final isDone = habit.isCompletedOn(state.selectedDate);
-                  final catColor = _getCategoryColor(habit.category);
-                  final iconData = _getIconData(habit.icon);
 
-                  return GestureDetector(
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => HabitDetailView(habit: habit),
-                        ),
-                      );
+                  return HabitCard(
+                    habit: habit,
+                    isDone: isDone,
+                    onDone: () async {
+                      await vm.toggleHabit(habit.id);
                     },
-                    child: Container(
-                      margin: const EdgeInsets.only(bottom: 12),
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF1E293B),
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: Colors.white.withOpacity(0.05)),
-                      ),
-                      child: Row(
-                        children: [
-                          Container(
-                            width: 48,
-                            height: 48,
-                            decoration: BoxDecoration(
-                              color: catColor.withOpacity(0.15),
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: Icon(
-                              iconData,
-                              color: catColor,
-                            ),
-                          ),
-                          const SizedBox(width: 16),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  habit.title,
-                                  style: GoogleFonts.plusJakartaSans(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w600,
-                                    color: const Color(0xFFE4E1ED),
-                                    decoration: isDone
-                                        ? TextDecoration.lineThrough
-                                        : null,
-                                  ),
-                                ),
-                                Text(
-                                  habit.subtitle,
-                                  style: GoogleFonts.plusJakartaSans(
-                                    fontSize: 12,
-                                    color: const Color(0xFFC7C4D7),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          IconButton(
-                            onPressed: () => vm.toggleHabit(habit.id),
-                            icon: Container(
-                              width: 36,
-                              height: 36,
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                color: isDone
-                                    ? const Color(0xFF22C55E)
-                                    : Colors.transparent,
-                                border: isDone
-                                    ? null
-                                    : Border.all(
-                                        color: const Color(0xFF464554),
-                                        width: 2,
-                                      ),
-                                boxShadow: isDone
-                                    ? [
-                                        BoxShadow(
-                                          color: const Color(0xFF22C55E).withOpacity(0.2),
-                                          blurRadius: 10,
-                                        ),
-                                      ]
-                                    : null,
-                              ),
-                              child: isDone
-                                  ? const Icon(
-                                      Icons.check,
-                                      color: Color(0xFF0F172A),
-                                      size: 20,
-                                    )
-                                  : null,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
                   );
-                }).toList(),
+                }),
+
+              const SizedBox(height: 50),
             ],
           ),
         ),
@@ -405,11 +303,12 @@ class TodayView extends ConsumerWidget {
             ),
           );
         },
-        backgroundColor: const Color(0xFF8083FF),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
+        backgroundColor: const Color(0xFF22C55E),
+        child: const Icon(
+          Icons.add_rounded,
+          color: Colors.white,
+          size: 28,
         ),
-        child: const Icon(Icons.add, color: Color(0xFF0D0096), size: 30),
       ),
     );
   }

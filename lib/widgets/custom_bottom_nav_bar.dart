@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../theme/theme_ext.dart';
 
 class CustomBottomNavBar extends StatelessWidget {
   final int currentIndex;
@@ -14,18 +15,19 @@ class CustomBottomNavBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      // margin: const EdgeInsets.fromLTRB(24.0, 0.0, 24.0, 24.0),
       padding: const EdgeInsets.symmetric(vertical: 12.0, horizontal: 16.0),
       decoration: BoxDecoration(
-        color: const Color(0xFF1E293B).withOpacity(0.95),
+        color: context.cardColor.withOpacity(0.95),
         borderRadius: BorderRadius.circular(24.0),
         border: Border.all(
-          color: Colors.white.withOpacity(0.08),
+          color: context.isDark
+              ? Colors.white.withOpacity(0.08)
+              : Colors.black.withOpacity(0.08),
           width: 1.0,
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.4),
+            color: Colors.black.withOpacity(context.isDark ? 0.4 : 0.05),
             blurRadius: 20.0,
             offset: const Offset(0, 8),
           ),
@@ -35,16 +37,19 @@ class CustomBottomNavBar extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: [
           _buildNavItem(
+            context: context,
             index: 0,
             icon: Icons.home_rounded,
             label: 'Today',
           ),
           _buildNavItem(
+            context: context,
             index: 1,
             icon: Icons.bar_chart_rounded,
             label: 'Analytics',
           ),
           _buildNavItem(
+            context: context,
             index: 2,
             icon: Icons.settings_rounded,
             label: 'Settings',
@@ -55,6 +60,7 @@ class CustomBottomNavBar extends StatelessWidget {
   }
 
   Widget _buildNavItem({
+    required BuildContext context,
     required int index,
     required IconData icon,
     required String label,
@@ -80,7 +86,7 @@ class CustomBottomNavBar extends StatelessWidget {
             child: Icon(
               icon,
               color: isSelected
-                  ? const Color(0xFF0D0096)
+                  ? Colors.white
                   : const Color(0xFF94A3B8),
               size: 24.0,
             ),

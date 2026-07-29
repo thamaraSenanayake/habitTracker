@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../widgets/custom_bottom_nav_bar.dart';
+import '../theme/theme_ext.dart';
 import 'today_view.dart';
 import 'analytics_view.dart';
 import 'settings_view.dart';
@@ -15,7 +16,7 @@ class MainLayout extends ConsumerWidget {
     final currentIndex = ref.watch(currentTabProvider);
 
     return Scaffold(
-      backgroundColor: const Color(0xFF0F172A),
+      backgroundColor: context.bgColor,
       body: IndexedStack(
         index: currentIndex,
         children: const [

@@ -2,9 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../viewmodels/auth_viewmodel.dart';
+import '../theme/theme_ext.dart';
 
 class SignInView extends ConsumerStatefulWidget {
-  const SignInView({Key? key}) : super(key: key);
+  const SignInView({super.key});
 
   @override
   ConsumerState<SignInView> createState() => _SignInViewState();
@@ -59,7 +60,7 @@ class _SignInViewState extends ConsumerState<SignInView> {
     final authState = ref.watch(authProvider);
 
     return Scaffold(
-      backgroundColor: const Color(0xFF0F172A),
+      backgroundColor: context.bgColor,
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
@@ -92,7 +93,7 @@ class _SignInViewState extends ConsumerState<SignInView> {
                     textAlign: TextAlign.center,
                     style: GoogleFonts.plusJakartaSans(
                       fontSize: 15,
-                      color: const Color(0xFFC7C4D7),
+                      color: context.secondaryTextColor,
                     ),
                   ),
                   const SizedBox(height: 32),
@@ -101,9 +102,20 @@ class _SignInViewState extends ConsumerState<SignInView> {
                   Container(
                     padding: const EdgeInsets.all(20),
                     decoration: BoxDecoration(
-                      color: const Color(0xFF1E293B).withOpacity(0.3),
+                      color: context.cardColor,
                       borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: Colors.white.withOpacity(0.05)),
+                      border: Border.all(
+                        color: context.isDark
+                            ? Colors.white.withOpacity(0.05)
+                            : Colors.black.withOpacity(0.05),
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(context.isDark ? 0.2 : 0.05),
+                          blurRadius: 10,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -114,14 +126,14 @@ class _SignInViewState extends ConsumerState<SignInView> {
                           style: GoogleFonts.plusJakartaSans(
                             fontSize: 13,
                             fontWeight: FontWeight.w500,
-                            color: const Color(0xFFC7C4D7),
+                            color: context.secondaryTextColor,
                           ),
                         ),
                         const SizedBox(height: 8),
                         TextFormField(
                           controller: _emailController,
                           keyboardType: TextInputType.emailAddress,
-                          style: GoogleFonts.plusJakartaSans(color: Colors.white),
+                          style: GoogleFonts.plusJakartaSans(color: context.textColor),
                           validator: (value) {
                             if (value == null || value.trim().isEmpty) {
                               return 'Please enter your email';
@@ -133,15 +145,17 @@ class _SignInViewState extends ConsumerState<SignInView> {
                           },
                           decoration: InputDecoration(
                             filled: true,
-                            fillColor: const Color(0xFF1E293B).withOpacity(0.5),
+                            fillColor: context.bgColor,
                             hintText: 'Enter your email',
                             hintStyle: GoogleFonts.plusJakartaSans(
-                              color: const Color(0xFF908FA0).withOpacity(0.5),
+                              color: context.secondaryTextColor.withOpacity(0.5),
                             ),
                             enabledBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
                               borderSide: BorderSide(
-                                color: Colors.white.withOpacity(0.08),
+                                color: context.isDark
+                                    ? Colors.white.withOpacity(0.08)
+                                    : Colors.black.withOpacity(0.08),
                               ),
                             ),
                             focusedBorder: OutlineInputBorder(
@@ -162,14 +176,14 @@ class _SignInViewState extends ConsumerState<SignInView> {
                           style: GoogleFonts.plusJakartaSans(
                             fontSize: 13,
                             fontWeight: FontWeight.w500,
-                            color: const Color(0xFFC7C4D7),
+                            color: context.secondaryTextColor,
                           ),
                         ),
                         const SizedBox(height: 8),
                         TextFormField(
                           controller: _passwordController,
                           obscureText: _obscurePassword,
-                          style: GoogleFonts.plusJakartaSans(color: Colors.white),
+                          style: GoogleFonts.plusJakartaSans(color: context.textColor),
                           validator: (value) {
                             if (value == null || value.trim().isEmpty) {
                               return 'Please enter your password';
@@ -181,15 +195,17 @@ class _SignInViewState extends ConsumerState<SignInView> {
                           },
                           decoration: InputDecoration(
                             filled: true,
-                            fillColor: const Color(0xFF1E293B).withOpacity(0.5),
+                            fillColor: context.bgColor,
                             hintText: 'Enter your password',
                             hintStyle: GoogleFonts.plusJakartaSans(
-                              color: const Color(0xFF908FA0).withOpacity(0.5),
+                              color: context.secondaryTextColor.withOpacity(0.5),
                             ),
                             enabledBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
                               borderSide: BorderSide(
-                                color: Colors.white.withOpacity(0.08),
+                                color: context.isDark
+                                    ? Colors.white.withOpacity(0.08)
+                                    : Colors.black.withOpacity(0.08),
                               ),
                             ),
                             focusedBorder: OutlineInputBorder(
@@ -205,7 +221,7 @@ class _SignInViewState extends ConsumerState<SignInView> {
                                 _obscurePassword
                                     ? Icons.visibility_rounded
                                     : Icons.visibility_off_rounded,
-                                color: const Color(0xFF908FA0),
+                                color: context.secondaryTextColor,
                               ),
                               onPressed: () {
                                 setState(() {
@@ -231,7 +247,7 @@ class _SignInViewState extends ConsumerState<SignInView> {
                               child: Text(
                                 'Forgot Password?',
                                 style: GoogleFonts.plusJakartaSans(
-                                  color: const Color(0xFF908FA0),
+                                  color: context.secondaryTextColor,
                                   fontSize: 12,
                                 ),
                               ),
@@ -249,8 +265,8 @@ class _SignInViewState extends ConsumerState<SignInView> {
                               backgroundColor: const Color(0xFF22C55E),
                               elevation: 0,
                               shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
                               shadowColor: const Color(0xFF22C55E).withOpacity(0.3),
                             ),
                             child: authState.status == AuthStatus.loading
@@ -268,123 +284,6 @@ class _SignInViewState extends ConsumerState<SignInView> {
                       ],
                     ),
                   ),
-                  const SizedBox(height: 24),
-
-                  // Divider
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Divider(
-                          color: const Color(0xFF464554).withOpacity(0.3),
-                        ),
-                      ),
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                        child: Text(
-                          'OR CONTINUE WITH',
-                          style: GoogleFonts.plusJakartaSans(
-                            fontSize: 11,
-                            color: const Color(0xFF908FA0),
-                            fontWeight: FontWeight.w600,
-                            letterSpacing: 1.0,
-                          ),
-                        ),
-                      ),
-                      Expanded(
-                        child: Divider(
-                          color: const Color(0xFF464554).withOpacity(0.3),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 24),
-
-                  // Social Buttons
-                  Row(
-                    children: [
-                      Expanded(
-                        child: InkWell(
-                          onTap: () {},
-                          borderRadius: BorderRadius.circular(12),
-                          child: Container(
-                            height: 56,
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border.all(
-                                color: const Color(0xFF464554).withOpacity(0.3),
-                              ),
-                              color: const Color(0xFF292932).withOpacity(0.1),
-                            ),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Image.network(
-                                  'https://lh3.googleusercontent.com/aida-public/AB6AXuBkPX3tthoFjnN0R-ibQ06r3_mc74UlBhtIPnsBUOZ9H0H7jW1zZUhQLxU4JgGomBopwoIR4cIHW2Hzsynh2M4zVjscIfH54ZOQKNjCK7FtEOfJ5-D2lAoPljzWPTg6mVmdD9rzCIRPP2Mva3OLHidIHqRAy-wUc1MmoHO5q3_2qxSc5gVXTfr4Y_hJJ-ivcwb6-ppryHTB1jcdbiBfLmtMic1PLYLaC-5eOHAsQ6dscSY_3Ux-s89td6t5CcaBuWlLEah4TAgi1TRD',
-                                  width: 20,
-                                  height: 20,
-                                  errorBuilder: (context, error, stackTrace) => const Icon(
-                                    Icons.g_mobiledata_rounded,
-                                    size: 24,
-                                    color: Colors.white,
-                                  ),
-                                ),
-                                const SizedBox(width: 8),
-                                Text(
-                                  'Google',
-                                  style: GoogleFonts.plusJakartaSans(
-                                    color: Colors.white,
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: InkWell(
-                          onTap: () {},
-                          borderRadius: BorderRadius.circular(12),
-                          child: Container(
-                            height: 56,
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border.all(
-                                color: const Color(0xFF464554).withOpacity(0.3),
-                              ),
-                              color: const Color(0xFF292932).withOpacity(0.1),
-                            ),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Image.network(
-                                  'https://lh3.googleusercontent.com/aida-public/AB6AXuCwltnKVrbk0VcFJG1VoSJfJa32wD_s4g2EwpCiAx7FFI9LLK1-RE0k_LshatZtFzRYipJL49WyA9LtkaPKODn9GG4KQt6caawADUnmPRR6CAfzsezP_hyy4fARZdIL0lsyilHuXR-DDIFfD-few6S5kRkoPvufKwvqNvOYvflcOItlYnBCuxL3UGMg0NQ4e729-QdlowIO3u54bb44_shoClVPMcSQtp06vhhEJ9aasX63v2JK6PwSQMYE4zXW9uip8ZriNXzcj4Ne',
-                                  width: 20,
-                                  height: 20,
-                                  errorBuilder: (context, error, stackTrace) => const Icon(
-                                    Icons.apple_rounded,
-                                    size: 20,
-                                    color: Colors.white,
-                                  ),
-                                ),
-                                const SizedBox(width: 8),
-                                Text(
-                                  'Apple',
-                                  style: GoogleFonts.plusJakartaSans(
-                                    color: Colors.white,
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
                   const SizedBox(height: 32),
 
                   // Toggle mode footer
@@ -394,7 +293,7 @@ class _SignInViewState extends ConsumerState<SignInView> {
                       Text(
                         _isSignUpMode ? 'Already have an account?' : "Don't have an account?",
                         style: GoogleFonts.plusJakartaSans(
-                          color: const Color(0xFF908FA0),
+                          color: context.secondaryTextColor,
                           fontSize: 14,
                         ),
                       ),

@@ -6,6 +6,7 @@ import 'package:habit_flow/widgets/buildCards.dart';
 import 'package:intl/intl.dart';
 import '../viewmodels/habit_viewmodel.dart';
 import '../models/habit_model.dart';
+import '../theme/theme_ext.dart';
 
 class AnalyticsView extends ConsumerWidget {
   const AnalyticsView({super.key});
@@ -44,7 +45,7 @@ class AnalyticsView extends ConsumerWidget {
     }
 
     return Scaffold(
-      backgroundColor: const Color(0xFF0F172A),
+      backgroundColor: context.bgColor,
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.fromLTRB(16.0, 12.0, 16.0, 32.0),
@@ -57,7 +58,7 @@ class AnalyticsView extends ConsumerWidget {
                 style: GoogleFonts.plusJakartaSans(
                   fontSize: 28,
                   fontWeight: FontWeight.bold,
-                  color: const Color(0xFFE4E1ED),
+                  color: context.textColor,
                 ),
               ),
               const SizedBox(height: 4),
@@ -65,7 +66,7 @@ class AnalyticsView extends ConsumerWidget {
                 'Weekly Performance & Insights',
                 style: GoogleFonts.plusJakartaSans(
                   fontSize: 14,
-                  color: const Color(0xFFC7C4D7),
+                  color: context.secondaryTextColor,
                 ),
               ),
               const SizedBox(height: 24),
@@ -74,7 +75,6 @@ class AnalyticsView extends ConsumerWidget {
               IntrinsicHeight(
                 child: IntrinsicWidth(
                   child: Row(
-                    
                     children: [
                       Expanded(
                         child: BuildCards(
@@ -114,7 +114,7 @@ class AnalyticsView extends ConsumerWidget {
                 style: GoogleFonts.plusJakartaSans(
                   fontSize: 18,
                   fontWeight: FontWeight.w600,
-                  color: const Color(0xFFE4E1ED),
+                  color: context.textColor,
                 ),
               ),
               const SizedBox(height: 12),
@@ -124,9 +124,20 @@ class AnalyticsView extends ConsumerWidget {
                 height: 240,
                 padding: const EdgeInsets.fromLTRB(12, 24, 16, 12),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF1E293B).withOpacity(0.7),
+                  color: context.cardColor,
                   borderRadius: BorderRadius.circular(24),
-                  border: Border.all(color: Colors.white.withOpacity(0.06)),
+                  border: Border.all(
+                    color: context.isDark
+                        ? Colors.white.withOpacity(0.06)
+                        : Colors.black.withOpacity(0.06),
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(context.isDark ? 0.2 : 0.05),
+                      blurRadius: 10,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
                 ),
                 child: BarChart(
                   BarChartData(
@@ -135,12 +146,12 @@ class AnalyticsView extends ConsumerWidget {
                     barTouchData: BarTouchData(
                       enabled: true,
                       touchTooltipData: BarTouchTooltipData(
-                        tooltipBgColor: const Color(0xFF0F172A),
+                        tooltipBgColor: context.bgColor,
                         getTooltipItem: (group, groupIndex, rod, rodIndex) {
                           return BarTooltipItem(
                             '${rod.toY.round()}%',
                             GoogleFonts.plusJakartaSans(
-                              color: Colors.white,
+                              color: context.textColor,
                               fontWeight: FontWeight.bold,
                               fontSize: 12,
                             ),
@@ -168,7 +179,7 @@ class AnalyticsView extends ConsumerWidget {
                                   style: GoogleFonts.plusJakartaSans(
                                     color: isToday
                                         ? const Color(0xFF8083FF)
-                                        : const Color(0xFFC7C4D7),
+                                        : context.secondaryTextColor,
                                     fontSize: 12,
                                     fontWeight: isToday ? FontWeight.bold : FontWeight.normal,
                                   ),
@@ -191,7 +202,7 @@ class AnalyticsView extends ConsumerWidget {
                               child: Text(
                                 '${value.toInt()}%',
                                 style: GoogleFonts.plusJakartaSans(
-                                  color: const Color(0xFFC7C4D7).withOpacity(0.7),
+                                  color: context.secondaryTextColor.withOpacity(0.7),
                                   fontSize: 10,
                                 ),
                               ),
@@ -213,7 +224,7 @@ class AnalyticsView extends ConsumerWidget {
                       horizontalInterval: 25,
                       getDrawingHorizontalLine: (value) {
                         return FlLine(
-                          color: Colors.white.withOpacity(0.04),
+                          color: context.textColor.withOpacity(0.04),
                           strokeWidth: 1,
                         );
                       },
@@ -242,7 +253,9 @@ class AnalyticsView extends ConsumerWidget {
                             backDrawRodData: BackgroundBarChartRodData(
                               show: true,
                               toY: 100,
-                              color: const Color(0xFF34343D).withOpacity(0.3),
+                              color: context.isDark
+                                  ? const Color(0xFF34343D).withOpacity(0.3)
+                                  : const Color(0xFFE2E8F0),
                             ),
                           ),
                         ],
@@ -259,7 +272,7 @@ class AnalyticsView extends ConsumerWidget {
                 style: GoogleFonts.plusJakartaSans(
                   fontSize: 18,
                   fontWeight: FontWeight.w600,
-                  color: const Color(0xFFE4E1ED),
+                  color: context.textColor,
                 ),
               ),
               const SizedBox(height: 12),
@@ -270,13 +283,18 @@ class AnalyticsView extends ConsumerWidget {
                   padding: const EdgeInsets.all(24),
                   alignment: Alignment.center,
                   decoration: BoxDecoration(
-                    color: const Color(0xFF1E293B).withOpacity(0.5),
+                    color: context.cardColor,
                     borderRadius: BorderRadius.circular(20),
+                    border: Border.all(
+                      color: context.isDark
+                          ? Colors.white.withOpacity(0.05)
+                          : Colors.black.withOpacity(0.05),
+                    ),
                   ),
                   child: Text(
                     'No habits created yet.',
                     style: GoogleFonts.plusJakartaSans(
-                      color: const Color(0xFFC7C4D7),
+                      color: context.secondaryTextColor,
                       fontSize: 14,
                     ),
                   ),
@@ -321,9 +339,20 @@ class AnalyticsView extends ConsumerWidget {
                     margin: const EdgeInsets.only(bottom: 12),
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: const Color(0xFF1E293B).withOpacity(0.7),
+                      color: context.cardColor,
                       borderRadius: BorderRadius.circular(20),
-                      border: Border.all(color: Colors.white.withOpacity(0.05)),
+                      border: Border.all(
+                        color: context.isDark
+                            ? Colors.white.withOpacity(0.05)
+                            : Colors.black.withOpacity(0.05),
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(context.isDark ? 0.2 : 0.05),
+                          blurRadius: 8,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
                     ),
                     child: Column(
                       children: [
@@ -347,14 +376,14 @@ class AnalyticsView extends ConsumerWidget {
                                     style: GoogleFonts.plusJakartaSans(
                                       fontSize: 15,
                                       fontWeight: FontWeight.w600,
-                                      color: const Color(0xFFE4E1ED),
+                                      color: context.textColor,
                                     ),
                                   ),
                                   Text(
                                     '$totalInCat active ${totalInCat == 1 ? "habit" : "habits"}',
                                     style: GoogleFonts.plusJakartaSans(
                                       fontSize: 12,
-                                      color: const Color(0xFFC7C4D7),
+                                      color: context.secondaryTextColor,
                                     ),
                                   ),
                                 ],
@@ -363,33 +392,33 @@ class AnalyticsView extends ConsumerWidget {
                             Text(
                               '$completedInCat/$totalInCat Done',
                               style: GoogleFonts.plusJakartaSans(
-                                fontSize: 13,
-                                fontWeight: FontWeight.bold,
-                                color: catColor,
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.bold,
+                                  color: catColor,
+                                ),
                               ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 14),
-                        ClipRRect(
-                          borderRadius: BorderRadius.circular(6),
-                          child: LinearProgressIndicator(
-                            value: ratio,
-                            minHeight: 6,
-                            backgroundColor: const Color(0xFF34343D),
-                            valueColor: AlwaysStoppedAnimation<Color>(catColor),
+                            ],
                           ),
-                        ),
-                      ],
-                    ),
-                  );
-                }).toList(),
-            ],
+                          const SizedBox(height: 14),
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(6),
+                            child: LinearProgressIndicator(
+                              value: ratio,
+                              minHeight: 6,
+                              backgroundColor: context.isDark
+                                  ? const Color(0xFF34343D)
+                                  : const Color(0xFFE2E8F0),
+                              valueColor: AlwaysStoppedAnimation<Color>(catColor),
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  }).toList(),
+              ],
+            ),
           ),
         ),
-      ),
-    );
+      );
+    }
   }
-
-  
-}

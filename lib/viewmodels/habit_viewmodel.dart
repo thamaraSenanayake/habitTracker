@@ -1,8 +1,8 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:habit_flow/models/user_profile_model.dart';
-
 import '../models/habit_model.dart';
+import '../models/user_profile_model.dart';
 import '../services/database_helper.dart';
+import '../services/sync_service.dart';
 
 // State wrapper for ViewModel
 class HabitState {
@@ -11,6 +11,7 @@ class HabitState {
   final String selectedDate;
   final String filterCategory;
   final bool isLoading;
+
   HabitState({
     required this.habits,
     this.userProfile,
@@ -18,6 +19,7 @@ class HabitState {
     this.filterCategory = 'all',
     this.isLoading = false,
   });
+
   HabitState copyWith({
     List<HabitModel>? habits,
     UserProfileModel? userProfile,
@@ -39,6 +41,7 @@ class HabitState {
   }
 
   int get totalCount => habits.length;
+
   int get completionPercentage {
     if (totalCount == 0) return 0;
     return ((completedCount / totalCount) * 100).round();
@@ -48,10 +51,12 @@ class HabitState {
 // Riverpod ViewModel Notifier
 class HabitViewModel extends StateNotifier<HabitState> {
   final DatabaseHelper _dbHelper = DatabaseHelper.instance;
+
   HabitViewModel()
-    : super(HabitState(habits: [], selectedDate: _getTodayString())) {
+      : super(HabitState(habits: [], selectedDate: _getTodayString())) {
     loadData();
   }
+
   static String _getTodayString() {
     final now = DateTime.now();
     return "${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}";
@@ -66,6 +71,23 @@ class HabitViewModel extends StateNotifier<HabitState> {
       userProfile: profile,
       isLoading: false,
     );
+
+    // Trigger dynamic sync check in background if cloud sync is enabled
+    final uid = await _dbHelper.getLoggedInUserUid();
+    final email = await _dbHelper.getLoggedInUserEmail();
+    if (uid != null && email != null) {
+      final cloudSyncEnabled = await _dbHelper.isCloudSyncEnabled(email);
+      if (cloudSyncEnabled) {
+        syncPendingHabits(uid);
+      }
+    }
+  }
+
+  Future<void> syncPendingHabits(String uid) async {
+    await SyncService.syncPending(uid);
+    // Reload habits to get updated isSynced status flags
+    final habits = await _dbHelper.getAllHabits();
+    state = state.copyWith(habits: habits);
   }
 
   void selectDate(String dateStr) {
@@ -77,7 +99,11 @@ class HabitViewModel extends StateNotifier<HabitState> {
   }
 
   Future<void> toggleHabit(String habitId) async {
-    final updatedHabits = state.habits.map((h) {
+    final uid = await _dbHelper.getLoggedInUserUid();
+    final email = await _dbHelper.getLoggedInUserEmail();
+    final cloudSyncEnabled = uid != null && email != null && await _dbHelper.isCloudSyncEnabled(email);
+
+    final updatedHabits = await Future.wait(state.habits.map((h) async {
       if (h.id != habitId) return h;
 
       final dateStr = state.selectedDate;
@@ -93,28 +119,71 @@ class HabitViewModel extends StateNotifier<HabitState> {
       final updated = h.copyWith(
         completedDates: newDates,
         currentCount: !isCompleted ? h.targetCount : 0,
+        isSynced: cloudSyncEnabled ? 0 : 1,
       );
 
-      _dbHelper.updateHabit(updated);
+      await _dbHelper.updateHabit(updated);
+
+      if (cloudSyncEnabled && uid != null) {
+        final success = await SyncService.uploadHabit(uid, updated);
+        if (success) {
+          await _dbHelper.markHabitSynced(updated.id);
+          return updated.copyWith(isSynced: 1);
+        }
+      }
       return updated;
-    }).toList();
+    }).toList());
 
     state = state.copyWith(habits: updatedHabits);
   }
 
   Future<void> addHabit(HabitModel newHabit) async {
-    await _dbHelper.insertHabit(newHabit);
+    final uid = await _dbHelper.getLoggedInUserUid();
+    final email = await _dbHelper.getLoggedInUserEmail();
+    final cloudSyncEnabled = uid != null && email != null && await _dbHelper.isCloudSyncEnabled(email);
+
+    final habitToSave = newHabit.copyWith(
+      isSynced: cloudSyncEnabled ? 0 : 1,
+    );
+
+    await _dbHelper.insertHabit(habitToSave);
+
+    if (cloudSyncEnabled && uid != null) {
+      final success = await SyncService.uploadHabit(uid, habitToSave);
+      if (success) {
+        await _dbHelper.markHabitSynced(habitToSave.id);
+      }
+    }
+
     await loadData();
   }
 
   Future<void> deleteHabit(String habitId) async {
+    final uid = await _dbHelper.getLoggedInUserUid();
+    final email = await _dbHelper.getLoggedInUserEmail();
+    final cloudSyncEnabled = uid != null && email != null && await _dbHelper.isCloudSyncEnabled(email);
+
     await _dbHelper.deleteHabit(habitId);
+
+    if (cloudSyncEnabled && uid != null) {
+      await SyncService.deleteHabit(uid, habitId);
+    }
+
     await loadData();
   }
 
   Future<void> updateProfile(UserProfileModel profile) async {
     await _dbHelper.updateUserProfile(profile);
     state = state.copyWith(userProfile: profile);
+
+    final uid = await _dbHelper.getLoggedInUserUid();
+    final email = await _dbHelper.getLoggedInUserEmail();
+    if (uid != null && email != null) {
+      final cloudSyncEnabled = await _dbHelper.isCloudSyncEnabled(email);
+      if (cloudSyncEnabled) {
+        await SyncService.uploadProfile(uid, profile);
+      }
+    }
   }
 }
 

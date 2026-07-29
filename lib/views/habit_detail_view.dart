@@ -5,6 +5,7 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:intl/intl.dart';
 import '../viewmodels/habit_viewmodel.dart';
 import '../models/habit_model.dart';
+import '../theme/theme_ext.dart';
 
 class HabitDetailView extends ConsumerWidget {
   final HabitModel habit;
@@ -19,22 +20,22 @@ class HabitDetailView extends ConsumerWidget {
       context: context,
       builder: (context) {
         return AlertDialog(
-          backgroundColor: const Color(0xFF1E293B),
+          backgroundColor: context.isDark ? const Color(0xFF1E293B) : Colors.white,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(20),
-            side: BorderSide(color: Colors.white.withOpacity(0.1)),
+            side: BorderSide(color: context.textColor.withOpacity(0.1)),
           ),
           title: Text(
             'Delete Habit',
             style: GoogleFonts.plusJakartaSans(
-              color: const Color(0xFFE4E1ED),
+              color: context.textColor,
               fontWeight: FontWeight.bold,
             ),
           ),
           content: Text(
             'Are you sure you want to delete this habit? This action cannot be undone.',
             style: GoogleFonts.plusJakartaSans(
-              color: const Color(0xFFC7C4D7),
+              color: context.secondaryTextColor,
             ),
           ),
           actions: [
@@ -42,7 +43,7 @@ class HabitDetailView extends ConsumerWidget {
               onPressed: () => Navigator.pop(context),
               child: Text(
                 'Cancel',
-                style: GoogleFonts.plusJakartaSans(color: const Color(0xFFC7C4D7)),
+                style: GoogleFonts.plusJakartaSans(color: context.secondaryTextColor),
               ),
             ),
             ElevatedButton(
@@ -97,12 +98,12 @@ class HabitDetailView extends ConsumerWidget {
         : const Color(0xFF8083FF);
 
     return Scaffold(
-      backgroundColor: const Color(0xFF0F172A),
+      backgroundColor: context.bgColor,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_rounded, color: Color(0xFFE4E1ED)),
+          icon: Icon(Icons.arrow_back_rounded, color: context.textColor),
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
@@ -110,7 +111,7 @@ class HabitDetailView extends ConsumerWidget {
           style: GoogleFonts.plusJakartaSans(
             fontSize: 18,
             fontWeight: FontWeight.w600,
-            color: const Color(0xFFE4E1ED),
+            color: context.textColor,
           ),
         ),
         centerTitle: true,
@@ -130,9 +131,20 @@ class HabitDetailView extends ConsumerWidget {
             Container(
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
-                color: const Color(0xFF1E293B).withOpacity(0.7),
+                color: context.cardColor,
                 borderRadius: BorderRadius.circular(24),
-                border: Border.all(color: Colors.white.withOpacity(0.06)),
+                border: Border.all(
+                  color: context.isDark
+                      ? Colors.white.withOpacity(0.06)
+                      : Colors.black.withOpacity(0.06),
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(context.isDark ? 0.2 : 0.05),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -141,7 +153,7 @@ class HabitDetailView extends ConsumerWidget {
                     'Current Streak',
                     style: GoogleFonts.plusJakartaSans(
                       fontSize: 13,
-                      color: const Color(0xFFC7C4D7),
+                      color: context.secondaryTextColor,
                     ),
                   ),
                   const SizedBox(height: 4),
@@ -162,9 +174,12 @@ class HabitDetailView extends ConsumerWidget {
                       ),
                     ],
                   ),
-                  const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 16.0),
-                    child: Divider(color: Color(0xFF464554), height: 1),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 16.0),
+                    child: Divider(
+                      color: context.isDark ? const Color(0xFF464554) : const Color(0xFFE2E8F0),
+                      height: 1,
+                    ),
                   ),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -173,7 +188,7 @@ class HabitDetailView extends ConsumerWidget {
                         'Longest Streak',
                         style: GoogleFonts.plusJakartaSans(
                           fontSize: 14,
-                          color: const Color(0xFFC7C4D7),
+                          color: context.secondaryTextColor,
                         ),
                       ),
                       Text(
@@ -181,7 +196,7 @@ class HabitDetailView extends ConsumerWidget {
                         style: GoogleFonts.plusJakartaSans(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
-                          color: Colors.white,
+                          color: context.textColor,
                         ),
                       ),
                     ],
@@ -195,9 +210,20 @@ class HabitDetailView extends ConsumerWidget {
             Container(
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
-                color: const Color(0xFF1E293B).withOpacity(0.7),
+                color: context.cardColor,
                 borderRadius: BorderRadius.circular(24),
-                border: Border.all(color: Colors.white.withOpacity(0.06)),
+                border: Border.all(
+                  color: context.isDark
+                      ? Colors.white.withOpacity(0.06)
+                      : Colors.black.withOpacity(0.06),
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(context.isDark ? 0.2 : 0.05),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -210,14 +236,14 @@ class HabitDetailView extends ConsumerWidget {
                         style: GoogleFonts.plusJakartaSans(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
-                          color: Colors.white,
+                          color: context.textColor,
                         ),
                       ),
                       Text(
                         DateFormat('MMMM yyyy').format(now),
                         style: GoogleFonts.plusJakartaSans(
                           fontSize: 13,
-                          color: const Color(0xFFC7C4D7),
+                          color: context.secondaryTextColor,
                         ),
                       ),
                     ],
@@ -236,7 +262,7 @@ class HabitDetailView extends ConsumerWidget {
                           style: GoogleFonts.plusJakartaSans(
                             fontSize: 11,
                             fontWeight: FontWeight.bold,
-                            color: const Color(0xFFC7C4D7).withOpacity(0.6),
+                            color: context.secondaryTextColor.withOpacity(0.6),
                           ),
                         ),
                       );
@@ -269,12 +295,16 @@ class HabitDetailView extends ConsumerWidget {
                         decoration: BoxDecoration(
                           color: isCompleted
                               ? const Color(0xFF22C55E)
-                              : const Color(0xFF334155).withOpacity(0.4),
+                              : (context.isDark
+                                  ? const Color(0xFF334155).withOpacity(0.4)
+                                  : const Color(0xFFE2E8F0)),
                           borderRadius: BorderRadius.circular(8),
                           border: Border.all(
                             color: isCompleted
                                 ? Colors.transparent
-                                : Colors.white.withOpacity(0.03),
+                                : (context.isDark
+                                    ? Colors.white.withOpacity(0.03)
+                                    : Colors.black.withOpacity(0.03)),
                           ),
                           boxShadow: isCompleted
                               ? [
@@ -291,8 +321,8 @@ class HabitDetailView extends ConsumerWidget {
                             fontSize: 11,
                             fontWeight: FontWeight.bold,
                             color: isCompleted
-                                ? const Color(0xFF0F172A)
-                                : const Color(0xFFC7C4D7).withOpacity(0.8),
+                                ? (context.isDark ? const Color(0xFF0F172A) : Colors.white)
+                                : context.textColor.withOpacity(0.8),
                           ),
                         ),
                       );
@@ -319,7 +349,7 @@ class HabitDetailView extends ConsumerWidget {
                             'Completed',
                             style: GoogleFonts.plusJakartaSans(
                               fontSize: 11,
-                              color: const Color(0xFFC7C4D7),
+                              color: context.secondaryTextColor,
                             ),
                           ),
                         ],
@@ -331,7 +361,9 @@ class HabitDetailView extends ConsumerWidget {
                             width: 12,
                             height: 12,
                             decoration: BoxDecoration(
-                              color: const Color(0xFF334155).withOpacity(0.4),
+                              color: context.isDark
+                                  ? const Color(0xFF334155).withOpacity(0.4)
+                                  : const Color(0xFFE2E8F0),
                               borderRadius: BorderRadius.circular(3),
                             ),
                           ),
@@ -340,7 +372,7 @@ class HabitDetailView extends ConsumerWidget {
                             'Missed',
                             style: GoogleFonts.plusJakartaSans(
                               fontSize: 11,
-                              color: const Color(0xFFC7C4D7),
+                              color: context.secondaryTextColor,
                             ),
                           ),
                         ],
@@ -356,9 +388,20 @@ class HabitDetailView extends ConsumerWidget {
             Container(
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
-                color: const Color(0xFF1E293B).withOpacity(0.7),
+                color: context.cardColor,
                 borderRadius: BorderRadius.circular(24),
-                border: Border.all(color: Colors.white.withOpacity(0.06)),
+                border: Border.all(
+                  color: context.isDark
+                      ? Colors.white.withOpacity(0.06)
+                      : Colors.black.withOpacity(0.06),
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(context.isDark ? 0.2 : 0.05),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -368,7 +411,7 @@ class HabitDetailView extends ConsumerWidget {
                     style: GoogleFonts.plusJakartaSans(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
-                      color: Colors.white,
+                      color: context.textColor,
                     ),
                   ),
                   const SizedBox(height: 24),
@@ -395,7 +438,7 @@ class HabitDetailView extends ConsumerWidget {
                                     child: Text(
                                       label,
                                       style: GoogleFonts.plusJakartaSans(
-                                        color: const Color(0xFFC7C4D7),
+                                        color: context.secondaryTextColor,
                                         fontSize: 12,
                                         fontWeight: FontWeight.bold,
                                       ),
@@ -431,7 +474,9 @@ class HabitDetailView extends ConsumerWidget {
                                 toY: completed ? 100.0 : 15.0,
                                 color: completed
                                     ? const Color(0xFF22C55E)
-                                    : const Color(0xFF334155).withOpacity(0.4),
+                                    : (context.isDark
+                                        ? const Color(0xFF334155).withOpacity(0.4)
+                                        : const Color(0xFFE2E8F0)),
                                 width: 14,
                                 borderRadius: const BorderRadius.only(
                                   topLeft: Radius.circular(6),

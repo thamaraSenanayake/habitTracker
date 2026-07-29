@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:habit_flow/main.dart';
 import 'package:habit_flow/viewmodels/habit_viewmodel.dart';
 import 'package:habit_flow/viewmodels/auth_viewmodel.dart';
+import 'package:habit_flow/viewmodels/theme_viewmodel.dart';
 import 'package:habit_flow/models/habit_model.dart';
 import 'package:habit_flow/models/user_profile_model.dart';
 
@@ -15,7 +16,6 @@ class MockHabitViewModel extends HabitViewModel {
 
   @override
   Future<void> loadData() async {
-    // Override loadData to set mock state and bypass the sqflite database
     state = HabitState(
       selectedDate: '2026-07-26',
       habits: [
@@ -51,7 +51,6 @@ class MockAuthNotifier extends AuthNotifier {
 
   @override
   Future<void> checkLoginStatus() async {
-    // Start unauthenticated to test the sign in page first
     state = AuthState(status: AuthStatus.unauthenticated);
   }
 
@@ -68,20 +67,59 @@ class MockAuthNotifier extends AuthNotifier {
   }
 
   @override
+  Future<void> toggleCloudSync(bool enabled) async {
+    state = state.copyWith(isCloudSyncEnabled: enabled);
+  }
+
+  @override
   Future<void> signOut() async {
     state = AuthState(status: AuthStatus.unauthenticated);
+  }
+}
+
+class MockThemeNotifier extends ThemeNotifier {
+  MockThemeNotifier() : super();
+
+  @override
+  void _loadTheme() {
+    state = ThemeMode.dark;
+  }
+
+  @override
+  Future<void> setThemeMode(ThemeMode mode) async {
+    state = mode;
+  }
+}
+
+class MockSettingsNotifier extends SettingsNotifier {
+  MockSettingsNotifier() : super();
+
+  @override
+  void _loadSettings() {
+    state = AppSettingsState(notificationsEnabled: true, soundEnabled: true);
+  }
+
+  @override
+  Future<void> setNotificationsEnabled(bool enabled) async {
+    state = state.copyWith(notificationsEnabled: enabled);
+  }
+
+  @override
+  Future<void> setSoundEnabled(bool enabled) async {
+    state = state.copyWith(soundEnabled: enabled);
   }
 }
 
 void main() {
   testWidgets('Full Authentication and navigation smoke test', (WidgetTester tester) async {
     await HttpOverrides.runZoned(() async {
-      // Build our app and trigger a frame with Riverpod overrides.
       await tester.pumpWidget(
         ProviderScope(
           overrides: [
             habitViewModelProvider.overrideWith((ref) => MockHabitViewModel()),
             authProvider.overrideWith((ref) => MockAuthNotifier(ref)),
+            themeProvider.overrideWith((ref) => MockThemeNotifier()),
+            settingsProvider.overrideWith((ref) => MockSettingsNotifier()),
           ],
           child: const HabitFlowApp(),
         ),
@@ -181,7 +219,6 @@ class _MockHttpClientResponse implements HttpClientResponse {
     void Function()? onDone,
     bool? cancelOnError,
   }) {
-    // 1x1 transparent GIF bytes
     final bytes = base64Decode(
         'R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7');
     return Stream<List<int>>.fromIterable([bytes]).listen(
