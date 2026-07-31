@@ -1,7 +1,14 @@
+import 'dart:convert';
 import 'dart:io';
+import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:share_plus/share_plus.dart';
 import '../services/database_helper.dart';
+import '../services/notification_service.dart';
+import 'habit_viewmodel.dart';
 
 // App Settings state holding notifications and sound variables
 class AppSettingsState {
@@ -74,6 +81,60 @@ class SettingsNotifier extends StateNotifier<AppSettingsState> {
     state = state.copyWith(soundEnabled: enabled);
     await _db.saveSetting('sound_enabled', enabled ? 'true' : 'false');
   }
+
+  Future<void> exportJson(HabitState state, BuildContext context) async {
+    try {
+      final habits = state.habits;
+      final List<Map<String, dynamic>> maps = habits.map((h) => h.toMap()).toList();
+      final String jsonContent = jsonEncode(maps);
+
+      if (Platform.isAndroid || Platform.isIOS) {
+        final tempDir = await getTemporaryDirectory();
+        final file = File('${tempDir.path}/habit_flow_export.json');
+        await file.writeAsString(jsonContent);
+
+        await Share.shareXFiles(
+          [XFile(file.path)],
+          subject: 'HabitFlow Data Export',
+          sharePositionOrigin:  Rect.fromLTWH(0, 0, 100, 100),
+        );
+      } else {
+        final FileSaveLocation? result = await getSaveLocation(
+          suggestedName: 'habit_flow_export.json',
+          acceptedTypeGroups: const <XTypeGroup>[
+            XTypeGroup(label: 'JSON', extensions: <String>['json']),
+          ],
+        );
+        if (result != null) {
+          final file = File(result.path);
+          await file.writeAsString(jsonContent);
+          if (context.mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                backgroundColor: const Color(0xFF22C55E),
+                content: Text(
+                  'Data exported successfully!',
+                  style: GoogleFonts.plusJakartaSans(color: Colors.white),
+                ),
+              ),
+            );
+          }
+        }
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            backgroundColor: const Color(0xFFEF4444),
+            content: Text(
+              'Export failed: $e',
+              style: GoogleFonts.plusJakartaSans(color: Colors.white),
+            ),
+          ),
+        );
+      }
+    }
+  }
 }
 
 // Global Providers
@@ -85,3 +146,16 @@ final settingsProvider =
     StateNotifierProvider<SettingsNotifier, AppSettingsState>((ref) {
       return SettingsNotifier();
     });
+
+final notificationSyncProvider = Provider<void>((ref) {
+  final habits = ref.watch(habitViewModelProvider).habits;
+  final settings = ref.watch(settingsProvider);
+
+  WidgetsBinding.instance.addPostFrameCallback((_) {
+    NotificationService.rescheduleAllReminders(
+      habits,
+      settings.notificationsEnabled,
+      settings.soundEnabled,
+    );
+  });
+});

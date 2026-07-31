@@ -4,10 +4,12 @@ import 'package:firebase_core/firebase_core.dart';
 import 'views/auth_wrapper.dart';
 import 'viewmodels/theme_viewmodel.dart';
 import 'theme/theme_ext.dart';
+import 'services/notification_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp();
+  await NotificationService.init();
   runApp(
     const ProviderScope(
       child: HabitFlowApp(),
@@ -20,6 +22,8 @@ class HabitFlowApp extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    // Watch reactive notification sync provider to automate scheduling updates
+    ref.watch(notificationSyncProvider);
     final themeMode = ref.watch(themeProvider);
 
     return MaterialApp(

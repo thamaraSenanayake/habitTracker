@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:habit_flow/models/user_profile_model.dart';
 import 'package:habit_flow/viewmodels/habit_viewmodel.dart';
+import 'package:image_picker/image_picker.dart';
 
 void showEditProfileDialog(
     BuildContext context,
@@ -38,20 +39,8 @@ void showEditProfileDialog(
                   GestureDetector(
                     onTap: () async {
                       try {
-                        final XFile? file = await openFile(
-                          acceptedTypeGroups: <XTypeGroup>[
-                            const XTypeGroup(
-                              label: 'images',
-                              extensions: <String>['jpg', 'png', 'jpeg'],
-                              mimeTypes: <String>[
-                                'image/*',
-                              ], // Android/Web wildcard fallback
-                              uniformTypeIdentifiers: <String>[
-                                'public.image', // Matches ALL image types on Apple platforms
-                              ],
-                            ),
-                          ],
-                        );
+                       
+                        final file = await ImagePicker().pickImage(source: ImageSource.gallery);
                         if (file != null) {
                           final bytes = await file.readAsBytes();
                           setState(() {
@@ -59,7 +48,7 @@ void showEditProfileDialog(
                           });
                         }
                       } catch (e) {
-                        print('Failed to pick profile picture: $e');
+                        debugPrint('Failed to pick profile picture: $e');
                       }
                     },
                     child: Stack(

@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:habit_flow/dialog/settings_edit.dart';
 import '../viewmodels/habit_viewmodel.dart';
 import '../models/user_profile_model.dart';
 import '../viewmodels/auth_viewmodel.dart';
@@ -15,152 +16,152 @@ import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 
 class SettingsView extends ConsumerStatefulWidget {
-  const SettingsView({Key? key}) : super(key: key);
+  const SettingsView({super.key});
 
   @override
   ConsumerState<SettingsView> createState() => _SettingsViewState();
 }
 
 class _SettingsViewState extends ConsumerState<SettingsView> {
-  void _showEditProfileDialog(BuildContext context, UserProfileModel profile, HabitViewModel vm) {
-    final controller = TextEditingController(text: profile.name);
-    Uint8List? selectedImageBytes = profile.avatarData;
+  // void _showEditProfileDialog(BuildContext context, UserProfileModel profile, HabitViewModel vm) {
+  //   final controller = TextEditingController(text: profile.name);
+  //   Uint8List? selectedImageBytes = profile.avatarData;
 
-    showDialog(
-      context: context,
-      builder: (context) {
-        return StatefulBuilder(
-          builder: (context, setState) {
-            return AlertDialog(
-              backgroundColor: context.isDark ? const Color(0xFF1E293B) : Colors.white,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(20),
-                side: BorderSide(color: context.textColor.withOpacity(0.1)),
-              ),
-              title: Text(
-                'Edit Profile',
-                style: GoogleFonts.plusJakartaSans(
-                  color: context.textColor,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              content: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  GestureDetector(
-                    onTap: () async {
-                      try {
-                        final XFile? file = await openFile(
-                          acceptedTypeGroups: <XTypeGroup>[
-                            const XTypeGroup(
-                              label: 'images',
-                              extensions: <String>['jpg', 'png', 'jpeg'],
-                            ),
-                          ],
-                        );
-                        if (file != null) {
-                          final bytes = await file.readAsBytes();
-                          setState(() {
-                            selectedImageBytes = bytes;
-                          });
-                        }
-                      } catch (e) {
-                        print('Failed to pick profile picture: $e');
-                      }
-                    },
-                    child: Stack(
-                      alignment: Alignment.center,
-                      children: [
-                        CircleAvatar(
-                          radius: 40,
-                          backgroundImage: selectedImageBytes != null
-                              ? MemoryImage(selectedImageBytes!)
-                              : (profile.avatarUrl.isNotEmpty
-                                  ? NetworkImage(profile.avatarUrl) as ImageProvider
-                                  : null),
-                          backgroundColor: context.isDark ? const Color(0xFF34343D) : const Color(0xFFE2E8F0),
-                          child: (selectedImageBytes == null && profile.avatarUrl.isEmpty)
-                              ? Icon(Icons.person, size: 40, color: context.secondaryTextColor)
-                              : null,
-                        ),
-                        Positioned(
-                          bottom: 0,
-                          right: 0,
-                          child: Container(
-                            padding: const EdgeInsets.all(4),
-                            decoration: const BoxDecoration(
-                              shape: BoxShape.circle,
-                              color: Color(0xFF8083FF),
-                            ),
-                            child: const Icon(
-                              Icons.camera_alt_rounded,
-                              size: 14,
-                              color: Colors.white,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-                  TextField(
-                    controller: controller,
-                    style: GoogleFonts.plusJakartaSans(color: context.textColor),
-                    decoration: InputDecoration(
-                      labelText: 'Name',
-                      labelStyle: GoogleFonts.plusJakartaSans(color: context.secondaryTextColor),
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(color: context.textColor.withOpacity(0.2)),
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: const BorderSide(color: Color(0xFF8083FF), width: 2),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: Text(
-                    'Cancel',
-                    style: GoogleFonts.plusJakartaSans(color: context.secondaryTextColor),
-                  ),
-                ),
-                ElevatedButton(
-                  onPressed: () {
-                    final newName = controller.text.trim();
-                    if (newName.isNotEmpty) {
-                      vm.updateProfile(profile.copyWith(
-                        name: newName,
-                        avatarData: selectedImageBytes,
-                      ));
-                    }
-                    Navigator.pop(context);
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF8083FF),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                  child: Text(
-                    'Save',
-                    style: GoogleFonts.plusJakartaSans(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-              ],
-            );
-          },
-        );
-      },
-    );
-  }
+  //   showDialog(
+  //     context: context,
+  //     builder: (context) {
+  //       return StatefulBuilder(
+  //         builder: (context, setState) {
+  //           return AlertDialog(
+  //             backgroundColor: context.isDark ? const Color(0xFF1E293B) : Colors.white,
+  //             shape: RoundedRectangleBorder(
+  //               borderRadius: BorderRadius.circular(20),
+  //               side: BorderSide(color: context.textColor.withOpacity(0.1)),
+  //             ),
+  //             title: Text(
+  //               'Edit Profile',
+  //               style: GoogleFonts.plusJakartaSans(
+  //                 color: context.textColor,
+  //                 fontWeight: FontWeight.bold,
+  //               ),
+  //             ),
+  //             content: Column(
+  //               mainAxisSize: MainAxisSize.min,
+  //               children: [
+  //                 GestureDetector(
+  //                   onTap: () async {
+  //                     try {
+  //                       final XFile? file = await openFile(
+  //                         acceptedTypeGroups: <XTypeGroup>[
+  //                           const XTypeGroup(
+  //                             label: 'images',
+  //                             extensions: <String>['jpg', 'png', 'jpeg'],
+  //                           ),
+  //                         ],
+  //                       );
+  //                       if (file != null) {
+  //                         final bytes = await file.readAsBytes();
+  //                         setState(() {
+  //                           selectedImageBytes = bytes;
+  //                         });
+  //                       }
+  //                     } catch (e) {
+  //                       print('Failed to pick profile picture: $e');
+  //                     }
+  //                   },
+  //                   child: Stack(
+  //                     alignment: Alignment.center,
+  //                     children: [
+  //                       CircleAvatar(
+  //                         radius: 40,
+  //                         backgroundImage: selectedImageBytes != null
+  //                             ? MemoryImage(selectedImageBytes!)
+  //                             : (profile.avatarUrl.isNotEmpty
+  //                                 ? NetworkImage(profile.avatarUrl) as ImageProvider
+  //                                 : null),
+  //                         backgroundColor: context.isDark ? const Color(0xFF34343D) : const Color(0xFFE2E8F0),
+  //                         child: (selectedImageBytes == null && profile.avatarUrl.isEmpty)
+  //                             ? Icon(Icons.person, size: 40, color: context.secondaryTextColor)
+  //                             : null,
+  //                       ),
+  //                       Positioned(
+  //                         bottom: 0,
+  //                         right: 0,
+  //                         child: Container(
+  //                           padding: const EdgeInsets.all(4),
+  //                           decoration: const BoxDecoration(
+  //                             shape: BoxShape.circle,
+  //                             color: Color(0xFF8083FF),
+  //                           ),
+  //                           child: const Icon(
+  //                             Icons.camera_alt_rounded,
+  //                             size: 14,
+  //                             color: Colors.white,
+  //                           ),
+  //                         ),
+  //                       ),
+  //                     ],
+  //                   ),
+  //                 ),
+  //                 const SizedBox(height: 20),
+  //                 TextField(
+  //                   controller: controller,
+  //                   style: GoogleFonts.plusJakartaSans(color: context.textColor),
+  //                   decoration: InputDecoration(
+  //                     labelText: 'Name',
+  //                     labelStyle: GoogleFonts.plusJakartaSans(color: context.secondaryTextColor),
+  //                     enabledBorder: OutlineInputBorder(
+  //                       borderRadius: BorderRadius.circular(12),
+  //                       borderSide: BorderSide(color: context.textColor.withOpacity(0.2)),
+  //                     ),
+  //                     focusedBorder: OutlineInputBorder(
+  //                       borderRadius: BorderRadius.circular(12),
+  //                       borderSide: const BorderSide(color: Color(0xFF8083FF), width: 2),
+  //                     ),
+  //                   ),
+  //                 ),
+  //               ],
+  //             ),
+  //             actions: [
+  //               TextButton(
+  //                 onPressed: () => Navigator.pop(context),
+  //                 child: Text(
+  //                   'Cancel',
+  //                   style: GoogleFonts.plusJakartaSans(color: context.secondaryTextColor),
+  //                 ),
+  //               ),
+  //               ElevatedButton(
+  //                 onPressed: () {
+  //                   final newName = controller.text.trim();
+  //                   if (newName.isNotEmpty) {
+  //                     vm.updateProfile(profile.copyWith(
+  //                       name: newName,
+  //                       avatarData: selectedImageBytes,
+  //                     ));
+  //                   }
+  //                   Navigator.pop(context);
+  //                 },
+  //                 style: ElevatedButton.styleFrom(
+  //                   backgroundColor: const Color(0xFF8083FF),
+  //                   shape: RoundedRectangleBorder(
+  //                     borderRadius: BorderRadius.circular(12),
+  //                   ),
+  //                 ),
+  //                 child: Text(
+  //                   'Save',
+  //                   style: GoogleFonts.plusJakartaSans(
+  //                     color: Colors.white,
+  //                     fontWeight: FontWeight.bold,
+  //                   ),
+  //                 ),
+  //               ),
+  //             ],
+  //           );
+  //         },
+  //       );
+  //     },
+  //   );
+  // }
 
   @override
   Widget build(BuildContext context) {
@@ -175,21 +176,21 @@ class _SettingsViewState extends ConsumerState<SettingsView> {
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        leading: Padding(
-          padding: const EdgeInsets.all(12.0),
-          child: Container(
-            decoration: const BoxDecoration(
-              shape: BoxShape.circle,
-              color: Color(0xFF8083FF),
-            ),
-            alignment: Alignment.center,
-            child: const Icon(
-              Icons.person,
-              color: Colors.white,
-              size: 16,
-            ),
-          ),
-        ),
+        // leading: Padding(
+        //   padding: const EdgeInsets.all(12.0),
+        //   child: Container(
+        //     decoration: const BoxDecoration(
+        //       shape: BoxShape.circle,
+        //       color: Color(0xFF8083FF),
+        //     ),
+        //     alignment: Alignment.center,
+        //     child: const Icon(
+        //       Icons.person,
+        //       color: Colors.white,
+        //       size: 16,
+        //     ),
+        //   ),
+        // ),
         titleSpacing: 0,
         title: Text(
           'HabitFlow',
@@ -297,7 +298,7 @@ class _SettingsViewState extends ConsumerState<SettingsView> {
                     IconButton(
                       onPressed: () {
                         if (profile != null) {
-                          _showEditProfileDialog(context, profile, vm);
+                          showEditProfileDialog(context, profile, vm);
                         }
                       },
                       icon: const Icon(
@@ -339,56 +340,7 @@ class _SettingsViewState extends ConsumerState<SettingsView> {
                       iconColor: const Color(0xFFFFB783),
                       title: 'Export Data (CSV/JSON)',
                       onTap: () async {
-                        try {
-                          final habits = state.habits;
-                          final List<Map<String, dynamic>> maps = habits.map((h) => h.toMap()).toList();
-                          final String jsonContent = jsonEncode(maps);
-
-                          if (Platform.isAndroid || Platform.isIOS) {
-                            final tempDir = await getTemporaryDirectory();
-                            final file = File('${tempDir.path}/habit_flow_export.json');
-                            await file.writeAsString(jsonContent);
-
-                            await Share.shareXFiles(
-                              [XFile(file.path)],
-                              subject: 'HabitFlow Data Export',
-                            );
-                          } else {
-                            final FileSaveLocation? result = await getSaveLocation(
-                              suggestedName: 'habit_flow_export.json',
-                              acceptedTypeGroups: const <XTypeGroup>[
-                                XTypeGroup(label: 'JSON', extensions: <String>['json']),
-                              ],
-                            );
-                            if (result != null) {
-                              final file = File(result.path);
-                              await file.writeAsString(jsonContent);
-                              if (context.mounted) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    backgroundColor: const Color(0xFF22C55E),
-                                    content: Text(
-                                      'Data exported successfully!',
-                                      style: GoogleFonts.plusJakartaSans(color: Colors.white),
-                                    ),
-                                  ),
-                                );
-                              }
-                            }
-                          }
-                        } catch (e) {
-                          if (context.mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                backgroundColor: const Color(0xFFEF4444),
-                                content: Text(
-                                  'Export failed: $e',
-                                  style: GoogleFonts.plusJakartaSans(color: Colors.white),
-                                ),
-                              ),
-                            );
-                          }
-                        }
+                        ref.read(settingsProvider.notifier).exportJson(state, context);
                       },
                     ),
                   ],
