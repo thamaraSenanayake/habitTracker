@@ -3,6 +3,7 @@ import '../models/habit_model.dart';
 import '../models/user_profile_model.dart';
 import '../services/database_helper.dart';
 import '../services/sync_service.dart';
+import 'auth_viewmodel.dart';
 
 // State wrapper for ViewModel
 class HabitState {
@@ -50,9 +51,10 @@ class HabitState {
 
 // Riverpod ViewModel Notifier
 class HabitViewModel extends StateNotifier<HabitState> {
+  final Ref _ref;
   final DatabaseHelper _dbHelper = DatabaseHelper.instance;
 
-  HabitViewModel()
+  HabitViewModel(this._ref)
       : super(HabitState(habits: [], selectedDate: _getTodayString())) {
     loadData();
   }
@@ -64,8 +66,13 @@ class HabitViewModel extends StateNotifier<HabitState> {
 
   Future<void> loadData() async {
     state = state.copyWith(isLoading: true);
-    final habits = await _dbHelper.getAllHabits();
-    final profile = await _dbHelper.getUserProfile();
+    final authState = _ref.read(authProvider);
+    final String activeUserId = authState.userId ?? '1';
+    
+    final habits = await _dbHelper.getAllHabits(activeUserId);
+    final localProfileId = int.tryParse(activeUserId) ?? 1;
+    final profile = await _dbHelper.getUserProfile(localProfileId);
+    
     state = state.copyWith(
       habits: habits,
       userProfile: profile,
@@ -85,8 +92,10 @@ class HabitViewModel extends StateNotifier<HabitState> {
 
   Future<void> syncPendingHabits(String uid) async {
     await SyncService.syncPending(uid);
+    final authState = _ref.read(authProvider);
+    final String activeUserId = authState.userId ?? '1';
     // Reload habits to get updated isSynced status flags
-    final habits = await _dbHelper.getAllHabits();
+    final habits = await _dbHelper.getAllHabits(activeUserId);
     state = state.copyWith(habits: habits);
   }
 
@@ -99,6 +108,9 @@ class HabitViewModel extends StateNotifier<HabitState> {
   }
 
   Future<void> toggleHabit(String habitId) async {
+    final authState = _ref.read(authProvider);
+    final String activeUserId = authState.userId ?? '1';
+    
     final uid = await _dbHelper.getLoggedInUserUid();
     final email = await _dbHelper.getLoggedInUserEmail();
     final cloudSyncEnabled = uid != null && email != null && await _dbHelper.isCloudSyncEnabled(email);
@@ -122,7 +134,7 @@ class HabitViewModel extends StateNotifier<HabitState> {
         isSynced: cloudSyncEnabled ? 0 : 1,
       );
 
-      await _dbHelper.updateHabit(updated);
+      await _dbHelper.updateHabit(updated, activeUserId);
 
       if (cloudSyncEnabled && uid != null) {
         final success = await SyncService.uploadHabit(uid, updated);
@@ -138,6 +150,9 @@ class HabitViewModel extends StateNotifier<HabitState> {
   }
 
   Future<void> addHabit(HabitModel newHabit) async {
+    final authState = _ref.read(authProvider);
+    final String activeUserId = authState.userId ?? '1';
+    
     final uid = await _dbHelper.getLoggedInUserUid();
     final email = await _dbHelper.getLoggedInUserEmail();
     final cloudSyncEnabled = uid != null && email != null && await _dbHelper.isCloudSyncEnabled(email);
@@ -146,7 +161,7 @@ class HabitViewModel extends StateNotifier<HabitState> {
       isSynced: cloudSyncEnabled ? 0 : 1,
     );
 
-    await _dbHelper.insertHabit(habitToSave);
+    await _dbHelper.insertHabit(habitToSave, activeUserId);
 
     if (cloudSyncEnabled && uid != null) {
       final success = await SyncService.uploadHabit(uid, habitToSave);
@@ -159,11 +174,14 @@ class HabitViewModel extends StateNotifier<HabitState> {
   }
 
   Future<void> deleteHabit(String habitId) async {
+    final authState = _ref.read(authProvider);
+    final String activeUserId = authState.userId ?? '1';
+    
     final uid = await _dbHelper.getLoggedInUserUid();
     final email = await _dbHelper.getLoggedInUserEmail();
     final cloudSyncEnabled = uid != null && email != null && await _dbHelper.isCloudSyncEnabled(email);
 
-    await _dbHelper.deleteHabit(habitId);
+    await _dbHelper.deleteHabit(habitId, activeUserId);
 
     if (cloudSyncEnabled && uid != null) {
       await SyncService.deleteHabit(uid, habitId);
@@ -173,15 +191,20 @@ class HabitViewModel extends StateNotifier<HabitState> {
   }
 
   Future<void> updateProfile(UserProfileModel profile) async {
-    await _dbHelper.updateUserProfile(profile);
-    state = state.copyWith(userProfile: profile);
+    final authState = _ref.read(authProvider);
+    final String activeUserId = authState.userId ?? '1';
+    final localProfileId = int.tryParse(activeUserId) ?? 1;
+    final updatedProfile = profile.copyWith(id: localProfileId);
+    
+    await _dbHelper.updateUserProfile(updatedProfile);
+    state = state.copyWith(userProfile: updatedProfile);
 
     final uid = await _dbHelper.getLoggedInUserUid();
     final email = await _dbHelper.getLoggedInUserEmail();
     if (uid != null && email != null) {
       final cloudSyncEnabled = await _dbHelper.isCloudSyncEnabled(email);
       if (cloudSyncEnabled) {
-        await SyncService.uploadProfile(uid, profile);
+        await SyncService.uploadProfile(uid, updatedProfile);
       }
     }
   }
@@ -190,5 +213,5 @@ class HabitViewModel extends StateNotifier<HabitState> {
 // Global Riverpod Provider definition
 final habitViewModelProvider =
     StateNotifierProvider<HabitViewModel, HabitState>((ref) {
-      return HabitViewModel();
+      return HabitViewModel(ref);
     });

@@ -125,7 +125,7 @@ class SyncService {
     if (email != null) {
       final syncEnabled = await db.isCloudSyncEnabled(email);
       if (syncEnabled) {
-        final profile = await db.getUserProfile();
+        final profile = await db.getUserProfile(1);
         await uploadProfile(uid, profile);
       }
     }

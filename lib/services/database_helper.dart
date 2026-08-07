@@ -19,7 +19,7 @@ class DatabaseHelper {
     final path = join(dbPath, filePath);
     return await openDatabase(
       path,
-      version: 6,
+      version: 7,
       onCreate: _createDB,
       onUpgrade: _onUpgrade,
     );
@@ -48,13 +48,14 @@ selectedDays TEXT,
 repeatType TEXT,
 repeatInterval INTEGER,
 startDate TEXT,
-isSynced INTEGER NOT NULL DEFAULT 1
+isSynced INTEGER NOT NULL DEFAULT 1,
+userId TEXT NOT NULL DEFAULT '1'
 )
 ''');
 
     await db.execute('''
   CREATE TABLE user_profile (
-    id INTEGER PRIMARY KEY DEFAULT 1,
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
     name TEXT NOT NULL,
     avatarUrl TEXT NOT NULL,
     avatarData BLOB,
@@ -138,6 +139,31 @@ isSynced INTEGER NOT NULL DEFAULT 1
       await db.insert('app_settings', {'key': 'theme_mode', 'value': 'dark'}, conflictAlgorithm: ConflictAlgorithm.ignore);
       await db.insert('app_settings', {'key': 'notifications_enabled', 'value': 'true'}, conflictAlgorithm: ConflictAlgorithm.ignore);
       await db.insert('app_settings', {'key': 'sound_enabled', 'value': 'true'}, conflictAlgorithm: ConflictAlgorithm.ignore);
+    }
+    if (oldVersion < 7) {
+      try {
+        await db.execute("ALTER TABLE habits ADD COLUMN userId TEXT DEFAULT '1'");
+      } catch (_) {}
+      
+      // Upgrade user_profile id column by recreating the table
+      try {
+        await db.execute("ALTER TABLE user_profile RENAME TO user_profile_old");
+        await db.execute('''
+          CREATE TABLE user_profile (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL,
+            avatarUrl TEXT NOT NULL,
+            avatarData BLOB,
+            overallStreak INTEGER NOT NULL,
+            joinedDate TEXT NOT NULL
+          )
+        ''');
+        await db.execute('''
+          INSERT INTO user_profile (id, name, avatarUrl, avatarData, overallStreak, joinedDate)
+          SELECT id, name, avatarUrl, avatarData, overallStreak, joinedDate FROM user_profile_old
+        ''');
+        await db.execute("DROP TABLE IF EXISTS user_profile_old");
+      } catch (_) {}
     }
   }
 
@@ -231,47 +257,61 @@ isSynced INTEGER NOT NULL DEFAULT 1
   }
 
   // CRUD Operations
-  Future<List<HabitModel>> getAllHabits() async {
+  Future<List<HabitModel>> getAllHabits(String userId) async {
     final db = await instance.database;
-    final result = await db.query('habits', orderBy: 'createdAt DESC');
+    final result = await db.query(
+      'habits',
+      where: 'userId = ?',
+      whereArgs: [userId],
+      orderBy: 'createdAt DESC',
+    );
     return result.map((json) => HabitModel.fromMap(json)).toList();
   }
 
-  Future<int> insertHabit(HabitModel habit) async {
+  Future<int> insertHabit(HabitModel habit, String userId) async {
     final db = await instance.database;
+    final map = habit.toMap();
+    map['userId'] = userId;
     return await db.insert(
       'habits',
-      habit.toMap(),
+      map,
       conflictAlgorithm: ConflictAlgorithm.replace,
     );
   }
 
-  Future<int> updateHabit(HabitModel habit) async {
+  Future<int> updateHabit(HabitModel habit, String userId) async {
     final db = await instance.database;
+    final map = habit.toMap();
+    map['userId'] = userId;
     return await db.update(
       'habits',
-      habit.toMap(),
-      where: 'id = ?',
-      whereArgs: [habit.id],
+      map,
+      where: 'id = ? AND userId = ?',
+      whereArgs: [habit.id, userId],
     );
   }
 
-  Future<int> deleteHabit(String id) async {
+  Future<int> deleteHabit(String id, String userId) async {
     final db = await instance.database;
-    return await db.delete('habits', where: 'id = ?', whereArgs: [id]);
+    return await db.delete(
+      'habits',
+      where: 'id = ? AND userId = ?',
+      whereArgs: [id, userId],
+    );
   }
 
-  Future<UserProfileModel> getUserProfile() async {
+  Future<UserProfileModel> getUserProfile(int id) async {
     final db = await instance.database;
     final maps = await db.query(
       'user_profile',
       where: 'id = ?',
-      whereArgs: [1],
+      whereArgs: [id],
     );
     if (maps.isNotEmpty) {
       return UserProfileModel.fromMap(maps.first);
     }
     return UserProfileModel(
+      id: id,
       name: 'Alex',
       avatarUrl: '',
       overallStreak: 12,
@@ -279,14 +319,35 @@ isSynced INTEGER NOT NULL DEFAULT 1
     );
   }
 
+  Future<int> insertUserProfile(UserProfileModel profile) async {
+    final db = await instance.database;
+    final map = profile.toMap();
+    map.remove('id'); // Let SQLite auto-increment the ID
+    return await db.insert(
+      'user_profile',
+      map,
+    );
+  }
+
   Future<int> updateUserProfile(UserProfileModel profile) async {
     final db = await instance.database;
-    return await db.update(
+    final map = profile.toMap();
+    if (profile.id == null) {
+      map['id'] = 1;
+    } else {
+      map['id'] = profile.id;
+    }
+    return await db.insert(
       'user_profile',
-      profile.toMap(),
-      where: 'id = ?',
-      whereArgs: [1],
+      map,
+      conflictAlgorithm: ConflictAlgorithm.replace,
     );
+  }
+
+  Future<List<UserProfileModel>> getAllLocalProfiles() async {
+    final db = await instance.database;
+    final maps = await db.query('user_profile');
+    return maps.map((m) => UserProfileModel.fromMap(m)).toList();
   }
 
   // User Authentication Helper Methods

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:habit_flow/models/habit_model.dart';
 import 'package:habit_flow/views/habit_detail_view.dart';
+import 'package:animations/animations.dart';
 import '../theme/theme_ext.dart';
 
 class HabitCard extends StatefulWidget {
@@ -28,133 +29,132 @@ class _HabitCardState extends State<HabitCard> {
     final catColor = _getCategoryColor(widget.habit.category);
     final iconData = _getIconData(widget.habit.icon);
 
-    return GestureDetector(
-      onTap: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => HabitDetailView(habit: widget.habit),
+    return OpenContainer(
+      transitionType: ContainerTransitionType.fade,
+      openBuilder: (context, _) => HabitDetailView(habit: widget.habit),
+      closedElevation: 0,
+      closedColor: Colors.transparent,
+      openColor: context.bgColor,
+      closedBuilder: (context, openContainer) {
+        return Container(
+          margin: const EdgeInsets.only(bottom: 12),
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: context.cardColor,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: context.isDark
+                  ? Colors.white.withOpacity(0.05)
+                  : Colors.black.withOpacity(0.05),
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(context.isDark ? 0.2 : 0.05),
+                blurRadius: 8,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 48,
+                height: 48,
+                decoration: BoxDecoration(
+                  color: catColor.withOpacity(0.15),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(iconData, color: catColor),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      widget.habit.title,
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: context.textColor,
+                        decoration: widget.isDone ? TextDecoration.lineThrough : null,
+                      ),
+                    ),
+                    Text(
+                      widget.habit.subtitle,
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 12,
+                        color: context.secondaryTextColor,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              IconButton(
+                onPressed: _isLoading
+                    ? null
+                    : () async {
+                        setState(() {
+                          _isLoading = true;
+                        });
+                        try {
+                          await widget.onDone();
+                        } finally {
+                          if (mounted) {
+                            setState(() {
+                              _isLoading = false;
+                            });
+                          }
+                        }
+                      },
+                icon: Container(
+                  width: 36,
+                  height: 36,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: widget.isDone ? const Color(0xFF22C55E) : Colors.transparent,
+                    border: widget.isDone
+                        ? null
+                        : Border.all(
+                            color: context.isDark
+                                ? const Color(0xFF464554)
+                                : const Color(0xFFCBD5E1),
+                            width: 2,
+                          ),
+                    boxShadow: widget.isDone
+                        ? [
+                            BoxShadow(
+                              color: const Color(0xFF22C55E).withOpacity(0.2),
+                              blurRadius: 10,
+                            ),
+                          ]
+                        : null,
+                  ),
+                  child: _isLoading
+                      ? Padding(
+                          padding: const EdgeInsets.all(8.0),
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            valueColor: AlwaysStoppedAnimation<Color>(
+                              widget.isDone
+                                  ? (context.isDark ? const Color(0xFF0F172A) : Colors.white)
+                                  : const Color(0xFF22C55E),
+                            ),
+                          ),
+                        )
+                      : (widget.isDone
+                          ? Icon(
+                              Icons.check,
+                              color: context.isDark ? const Color(0xFF0F172A) : Colors.white,
+                              size: 20,
+                            )
+                          : null),
+                ),
+              ),
+            ],
           ),
         );
       },
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 12),
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: context.cardColor,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: context.isDark
-                ? Colors.white.withOpacity(0.05)
-                : Colors.black.withOpacity(0.05),
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(context.isDark ? 0.2 : 0.05),
-              blurRadius: 8,
-              offset: const Offset(0, 2),
-            ),
-          ],
-        ),
-        child: Row(
-          children: [
-            Container(
-              width: 48,
-              height: 48,
-              decoration: BoxDecoration(
-                color: catColor.withOpacity(0.15),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Icon(iconData, color: catColor),
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    widget.habit.title,
-                    style: GoogleFonts.plusJakartaSans(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                      color: context.textColor,
-                      decoration: widget.isDone ? TextDecoration.lineThrough : null,
-                    ),
-                  ),
-                  Text(
-                    widget.habit.subtitle,
-                    style: GoogleFonts.plusJakartaSans(
-                      fontSize: 12,
-                      color: context.secondaryTextColor,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            IconButton(
-              onPressed: _isLoading
-                  ? null
-                  : () async {
-                      setState(() {
-                        _isLoading = true;
-                      });
-                      try {
-                        await widget.onDone();
-                      } finally {
-                        if (mounted) {
-                          setState(() {
-                            _isLoading = false;
-                          });
-                        }
-                      }
-                    },
-              icon: Container(
-                width: 36,
-                height: 36,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: widget.isDone ? const Color(0xFF22C55E) : Colors.transparent,
-                  border: widget.isDone
-                      ? null
-                      : Border.all(
-                          color: context.isDark
-                              ? const Color(0xFF464554)
-                              : const Color(0xFFCBD5E1),
-                          width: 2,
-                        ),
-                  boxShadow: widget.isDone
-                      ? [
-                          BoxShadow(
-                            color: const Color(0xFF22C55E).withOpacity(0.2),
-                            blurRadius: 10,
-                          ),
-                        ]
-                      : null,
-                ),
-                child: _isLoading
-                    ? Padding(
-                        padding: const EdgeInsets.all(8.0),
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          valueColor: AlwaysStoppedAnimation<Color>(
-                            widget.isDone
-                                ? (context.isDark ? const Color(0xFF0F172A) : Colors.white)
-                                : const Color(0xFF22C55E),
-                          ),
-                        ),
-                      )
-                    : (widget.isDone
-                        ? Icon(
-                            Icons.check,
-                            color: context.isDark ? const Color(0xFF0F172A) : Colors.white,
-                            size: 20,
-                          )
-                        : null),
-              ),
-            ),
-          ],
-        ),
-      ),
     );
   }
 

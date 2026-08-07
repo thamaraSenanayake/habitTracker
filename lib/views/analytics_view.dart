@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:habit_flow/widgets/buildCards.dart';
 import 'package:intl/intl.dart';
+import 'package:flutter_staggered_animations/flutter_staggered_animations.dart';
 import '../viewmodels/habit_viewmodel.dart';
 import '../models/habit_model.dart';
 import '../theme/theme_ext.dart';
@@ -300,121 +301,135 @@ class AnalyticsView extends ConsumerWidget {
                   ),
                 )
               else
-                ...categories.entries.map((entry) {
-                  final cat = entry.key;
-                  final habits = entry.value;
-                  final totalInCat = habits.length;
+                AnimationLimiter(
+                  child: Column(
+                    children: List.generate(categories.entries.length, (index) {
+                      final entry = categories.entries.elementAt(index);
+                      final cat = entry.key;
+                      final habits = entry.value;
+                      final totalInCat = habits.length;
 
-                  // Find how many completed on selectedDate
-                  final completedInCat = habits.where((h) => h.completedDates.contains(state.selectedDate)).length;
-                  final ratio = totalInCat > 0 ? (completedInCat / totalInCat) : 0.0;
+                      // Find how many completed on selectedDate
+                      final completedInCat = habits.where((h) => h.completedDates.contains(state.selectedDate)).length;
+                      final ratio = totalInCat > 0 ? (completedInCat / totalInCat) : 0.0;
 
-                  // Styling helper based on category name
-                  IconData iconData;
-                  Color catColor;
+                      // Styling helper based on category name
+                      IconData iconData;
+                      Color catColor;
 
-                  switch (cat.toLowerCase()) {
-                    case 'hydration':
-                      iconData = Icons.water_drop_rounded;
-                      catColor = const Color(0xFF60A5FA);
-                      break;
-                    case 'reading':
-                      iconData = Icons.menu_book_rounded;
-                      catColor = const Color(0xFFF59E0B);
-                      break;
-                    case 'fitness':
-                      iconData = Icons.fitness_center_rounded;
-                      catColor = const Color(0xFFEF4444);
-                      break;
-                    case 'mindfulness':
-                      iconData = Icons.self_improvement_rounded;
-                      catColor = const Color(0xFF10B981);
-                      break;
-                    default:
-                      iconData = Icons.star_rounded;
-                      catColor = const Color(0xFFC0C1FF);
-                  }
+                      switch (cat.toLowerCase()) {
+                        case 'hydration':
+                          iconData = Icons.water_drop_rounded;
+                          catColor = const Color(0xFF60A5FA);
+                          break;
+                        case 'reading':
+                          iconData = Icons.menu_book_rounded;
+                          catColor = const Color(0xFFF59E0B);
+                          break;
+                        case 'fitness':
+                          iconData = Icons.fitness_center_rounded;
+                          catColor = const Color(0xFFEF4444);
+                          break;
+                        case 'mindfulness':
+                          iconData = Icons.self_improvement_rounded;
+                          catColor = const Color(0xFF10B981);
+                          break;
+                        default:
+                          iconData = Icons.star_rounded;
+                          catColor = const Color(0xFFC0C1FF);
+                      }
 
-                  return Container(
-                    margin: const EdgeInsets.only(bottom: 12),
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: context.cardColor,
-                      borderRadius: BorderRadius.circular(20),
-                      border: Border.all(
-                        color: context.isDark
-                            ? Colors.white.withOpacity(0.05)
-                            : Colors.black.withOpacity(0.05),
-                      ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(context.isDark ? 0.2 : 0.05),
-                          blurRadius: 8,
-                          offset: const Offset(0, 2),
-                        ),
-                      ],
-                    ),
-                    child: Column(
-                      children: [
-                        Row(
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.all(10),
+                      return AnimationConfiguration.staggeredList(
+                        position: index,
+                        duration: const Duration(milliseconds: 375),
+                        child: SlideAnimation(
+                          verticalOffset: 50.0,
+                          child: FadeInAnimation(
+                            child: Container(
+                              margin: const EdgeInsets.only(bottom: 12),
+                              padding: const EdgeInsets.all(16),
                               decoration: BoxDecoration(
-                                color: catColor.withOpacity(0.15),
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: Icon(iconData, color: catColor, size: 20),
-                            ),
-                            const SizedBox(width: 14),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    cat[0].toUpperCase() + cat.substring(1),
-                                    style: GoogleFonts.plusJakartaSans(
-                                      fontSize: 15,
-                                      fontWeight: FontWeight.w600,
-                                      color: context.textColor,
-                                    ),
+                                color: context.cardColor,
+                                borderRadius: BorderRadius.circular(20),
+                                border: Border.all(
+                                  color: context.isDark
+                                      ? Colors.white.withOpacity(0.05)
+                                      : Colors.black.withOpacity(0.05),
+                                ),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withOpacity(context.isDark ? 0.2 : 0.05),
+                                    blurRadius: 8,
+                                    offset: const Offset(0, 2),
                                   ),
-                                  Text(
-                                    '$totalInCat active ${totalInCat == 1 ? "habit" : "habits"}',
-                                    style: GoogleFonts.plusJakartaSans(
-                                      fontSize: 12,
-                                      color: context.secondaryTextColor,
+                                ],
+                              ),
+                              child: Column(
+                                children: [
+                                  Row(
+                                    children: [
+                                      Container(
+                                        padding: const EdgeInsets.all(10),
+                                        decoration: BoxDecoration(
+                                          color: catColor.withOpacity(0.15),
+                                          borderRadius: BorderRadius.circular(12),
+                                        ),
+                                        child: Icon(iconData, color: catColor, size: 20),
+                                      ),
+                                      const SizedBox(width: 14),
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              cat[0].toUpperCase() + cat.substring(1),
+                                              style: GoogleFonts.plusJakartaSans(
+                                                fontSize: 15,
+                                                fontWeight: FontWeight.w600,
+                                                color: context.textColor,
+                                              ),
+                                            ),
+                                            Text(
+                                              '$totalInCat active ${totalInCat == 1 ? "habit" : "habits"}',
+                                              style: GoogleFonts.plusJakartaSans(
+                                                fontSize: 12,
+                                                color: context.secondaryTextColor,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                      Text(
+                                        '$completedInCat/$totalInCat Done',
+                                        style: GoogleFonts.plusJakartaSans(
+                                          fontSize: 13,
+                                          fontWeight: FontWeight.bold,
+                                          color: catColor,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 14),
+                                  ClipRRect(
+                                    borderRadius: BorderRadius.circular(6),
+                                    child: LinearProgressIndicator(
+                                      value: ratio,
+                                      minHeight: 6,
+                                      backgroundColor: context.isDark
+                                          ? const Color(0xFF34343D)
+                                          : const Color(0xFFE2E8F0),
+                                      valueColor: AlwaysStoppedAnimation<Color>(catColor),
                                     ),
                                   ),
                                 ],
                               ),
                             ),
-                            Text(
-                              '$completedInCat/$totalInCat Done',
-                              style: GoogleFonts.plusJakartaSans(
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.bold,
-                                  color: catColor,
-                                ),
-                              ),
-                            ],
                           ),
-                          const SizedBox(height: 14),
-                          ClipRRect(
-                            borderRadius: BorderRadius.circular(6),
-                            child: LinearProgressIndicator(
-                              value: ratio,
-                              minHeight: 6,
-                              backgroundColor: context.isDark
-                                  ? const Color(0xFF34343D)
-                                  : const Color(0xFFE2E8F0),
-                              valueColor: AlwaysStoppedAnimation<Color>(catColor),
-                            ),
-                          ),
-                        ],
-                      ),
-                    );
-                  }).toList(),
+                        ),
+                      );
+                    }),
+                  ),
+                ),
               ],
             ),
           ),

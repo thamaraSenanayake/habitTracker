@@ -33,28 +33,31 @@ class CustomBottomNavBar extends StatelessWidget {
           ),
         ],
       ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceAround,
-        children: [
-          _buildNavItem(
-            context: context,
-            index: 0,
-            icon: Icons.home_rounded,
-            label: 'Today',
-          ),
-          _buildNavItem(
-            context: context,
-            index: 1,
-            icon: Icons.bar_chart_rounded,
-            label: 'Analytics',
-          ),
-          _buildNavItem(
-            context: context,
-            index: 2,
-            icon: Icons.settings_rounded,
-            label: 'Settings',
-          ),
-        ],
+      child: SafeArea(
+      top: false,
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceAround,
+          children: [
+            _buildNavItem(
+              context: context,
+              index: 0,
+              icon: Icons.home_rounded,
+              label: 'Today',
+            ),
+            _buildNavItem(
+              context: context,
+              index: 1,
+              icon: Icons.bar_chart_rounded,
+              label: 'Analytics',
+            ),
+            _buildNavItem(
+              context: context,
+              index: 2,
+              icon: Icons.settings_rounded,
+              label: 'Settings',
+            ),
+          ],
+        ),
       ),
     );
   }

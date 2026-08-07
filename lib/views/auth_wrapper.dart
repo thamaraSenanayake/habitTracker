@@ -3,7 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../viewmodels/auth_viewmodel.dart';
 import 'main_layout.dart';
-import 'sign_in_view.dart';
+import 'welcome_view.dart';
+import 'onboarding_carousel_view.dart';
 
 class AuthWrapper extends ConsumerWidget {
   const AuthWrapper({Key? key}) : super(key: key);
@@ -45,7 +46,9 @@ class AuthWrapper extends ConsumerWidget {
       case AuthStatus.authenticated:
         return const MainLayout();
       case AuthStatus.unauthenticated:
-        return const SignInView();
+        return const WelcomeView();
+      case AuthStatus.onboarding:
+        return const OnboardingCarouselView();
     }
   }
 }

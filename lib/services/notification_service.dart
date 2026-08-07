@@ -29,7 +29,7 @@ class NotificationService {
 
       // 2. Initialize Notifications Settings
       const AndroidInitializationSettings androidSettings =
-          AndroidInitializationSettings('@mipmap/ic_launcher');
+          AndroidInitializationSettings('ic_notification');
       const DarwinInitializationSettings iosSettings =
           DarwinInitializationSettings(
         requestAlertPermission: false,
@@ -71,10 +71,11 @@ class NotificationService {
               sound: true,
             );
       } else if (Platform.isAndroid) {
-        await _notificationsPlugin
+        final androidPlugin = _notificationsPlugin
             .resolvePlatformSpecificImplementation<
-                AndroidFlutterLocalNotificationsPlugin>()
-            ?.requestNotificationsPermission();
+                AndroidFlutterLocalNotificationsPlugin>();
+        await androidPlugin?.requestNotificationsPermission();
+        await androidPlugin?.requestExactAlarmsPermission();
       }
     } catch (e) {
       debugPrint('Error requesting notification permissions: $e');

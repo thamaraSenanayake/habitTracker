@@ -3,10 +3,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:habit_flow/widgets/habitCard.dart';
 import 'package:intl/intl.dart';
+import 'package:flutter_staggered_animations/flutter_staggered_animations.dart';
+import 'package:animations/animations.dart';
 import '../viewmodels/habit_viewmodel.dart';
 import '../theme/theme_ext.dart';
 import 'add_habit_view.dart';
-import 'habit_detail_view.dart';
 
 class TodayView extends ConsumerWidget {
   const TodayView({super.key});
@@ -277,38 +278,57 @@ class TodayView extends ConsumerWidget {
                   ),
                 )
               else
-                ...state.habits.map((habit) {
-                  final isDone = habit.isCompletedOn(state.selectedDate);
+                AnimationLimiter(
+                  child: Column(
+                    children: List.generate(state.habits.length, (index) {
+                      final habit = state.habits[index];
+                      final isDone = habit.isCompletedOn(state.selectedDate);
 
-                  return HabitCard(
-                    habit: habit,
-                    isDone: isDone,
-                    onDone: () async {
-                      await vm.toggleHabit(habit.id);
-                    },
-                  );
-                }),
+                      return AnimationConfiguration.staggeredList(
+                        position: index,
+                        duration: const Duration(milliseconds: 375),
+                        child: SlideAnimation(
+                          verticalOffset: 50.0,
+                          child: FadeInAnimation(
+                            child: HabitCard(
+                              habit: habit,
+                              isDone: isDone,
+                              onDone: () async {
+                                await vm.toggleHabit(habit.id);
+                              },
+                            ),
+                          ),
+                        ),
+                      );
+                    }),
+                  ),
+                ),
 
               const SizedBox(height: 50),
             ],
           ),
         ),
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => const AddHabitView(),
+      floatingActionButton: OpenContainer(
+        transitionType: ContainerTransitionType.fade,
+        openBuilder: (context, _) => const AddHabitView(),
+        closedElevation: 6.0,
+        closedShape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.all(Radius.circular(28)),
+        ),
+        closedColor: const Color(0xFF22C55E),
+        openColor: context.bgColor,
+        closedBuilder: (context, openContainer) {
+          return SizedBox(
+            width: 56,
+            height: 56,
+            child: const Icon(
+              Icons.add_rounded,
+              color: Colors.white,
+              size: 28,
             ),
           );
         },
-        backgroundColor: const Color(0xFF22C55E),
-        child: const Icon(
-          Icons.add_rounded,
-          color: Colors.white,
-          size: 28,
-        ),
       ),
     );
   }
