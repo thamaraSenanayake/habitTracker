@@ -1,7 +1,7 @@
 import 'dart:typed_data';
 
 class UserProfileModel {
-  final int? id;
+  final String userId;
   final String name;
   final String avatarUrl;
   final Uint8List? avatarData;
@@ -9,7 +9,7 @@ class UserProfileModel {
   final String joinedDate;
 
   UserProfileModel({
-    this.id,
+    required this.userId,
     required this.name,
     required this.avatarUrl,
     this.avatarData,
@@ -18,22 +18,19 @@ class UserProfileModel {
   });
 
   Map<String, dynamic> toMap() {
-    final map = <String, dynamic>{
+    return {
+      'userId': userId,
       'name': name,
       'avatarUrl': avatarUrl,
       'avatarData': avatarData,
       'overallStreak': overallStreak,
       'joinedDate': joinedDate,
     };
-    if (id != null) {
-      map['id'] = id;
-    }
-    return map;
   }
 
   factory UserProfileModel.fromMap(Map<String, dynamic> map) {
     return UserProfileModel(
-      id: map['id'] as int?,
+      userId: map['userId'] as String? ?? '1',
       name: map['name'] as String? ?? 'Alex',
       avatarUrl: map['avatarUrl'] as String? ?? '',
       avatarData: map['avatarData'] as Uint8List?,
@@ -43,7 +40,7 @@ class UserProfileModel {
   }
 
   UserProfileModel copyWith({
-    int? id,
+    String? userId,
     String? name,
     String? avatarUrl,
     Uint8List? avatarData,
@@ -51,7 +48,7 @@ class UserProfileModel {
     String? joinedDate,
   }) {
     return UserProfileModel(
-      id: id ?? this.id,
+      userId: userId ?? this.userId,
       name: name ?? this.name,
       avatarUrl: avatarUrl ?? this.avatarUrl,
       avatarData: avatarData ?? this.avatarData,

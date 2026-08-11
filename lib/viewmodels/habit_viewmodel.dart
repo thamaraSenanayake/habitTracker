@@ -70,8 +70,7 @@ class HabitViewModel extends StateNotifier<HabitState> {
     final String activeUserId = authState.userId ?? '1';
     
     final habits = await _dbHelper.getAllHabits(activeUserId);
-    final localProfileId = int.tryParse(activeUserId) ?? 1;
-    final profile = await _dbHelper.getUserProfile(localProfileId);
+    final profile = await _dbHelper.getUserProfile(activeUserId);
     
     state = state.copyWith(
       habits: habits,
@@ -193,8 +192,7 @@ class HabitViewModel extends StateNotifier<HabitState> {
   Future<void> updateProfile(UserProfileModel profile) async {
     final authState = _ref.read(authProvider);
     final String activeUserId = authState.userId ?? '1';
-    final localProfileId = int.tryParse(activeUserId) ?? 1;
-    final updatedProfile = profile.copyWith(id: localProfileId);
+    final updatedProfile = profile.copyWith(userId: activeUserId);
     
     await _dbHelper.updateUserProfile(updatedProfile);
     state = state.copyWith(userProfile: updatedProfile);
@@ -213,5 +211,11 @@ class HabitViewModel extends StateNotifier<HabitState> {
 // Global Riverpod Provider definition
 final habitViewModelProvider =
     StateNotifierProvider<HabitViewModel, HabitState>((ref) {
-      return HabitViewModel(ref);
+      final viewModel = HabitViewModel(ref);
+      ref.listen<AuthState>(authProvider, (previous, next) {
+        if (previous?.userId != next.userId || previous?.status != next.status) {
+          viewModel.loadData();
+        }
+      });
+      return viewModel;
     });

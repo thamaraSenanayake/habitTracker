@@ -10,7 +10,7 @@ class DatabaseHelper {
   DatabaseHelper._init();
   Future<Database> get database async {
     if (_database != null) return _database!;
-    _database = await _initDB('habitflow1.db');
+    _database = await _initDB('habitflow3.db');
     return _database!;
   }
 
@@ -19,7 +19,7 @@ class DatabaseHelper {
     final path = join(dbPath, filePath);
     return await openDatabase(
       path,
-      version: 7,
+      version: 8,
       onCreate: _createDB,
       onUpgrade: _onUpgrade,
     );
@@ -55,7 +55,7 @@ userId TEXT NOT NULL DEFAULT '1'
 
     await db.execute('''
   CREATE TABLE user_profile (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    userId TEXT PRIMARY KEY,
     name TEXT NOT NULL,
     avatarUrl TEXT NOT NULL,
     avatarData BLOB,
@@ -165,6 +165,26 @@ userId TEXT NOT NULL DEFAULT '1'
         await db.execute("DROP TABLE IF EXISTS user_profile_old");
       } catch (_) {}
     }
+    if (oldVersion < 8) {
+      try {
+        await db.execute("ALTER TABLE user_profile RENAME TO user_profile_old");
+        await db.execute('''
+          CREATE TABLE user_profile (
+            userId TEXT PRIMARY KEY,
+            name TEXT NOT NULL,
+            avatarUrl TEXT NOT NULL,
+            avatarData BLOB,
+            overallStreak INTEGER NOT NULL,
+            joinedDate TEXT NOT NULL
+          )
+        ''');
+        await db.execute('''
+          INSERT INTO user_profile (userId, name, avatarUrl, avatarData, overallStreak, joinedDate)
+          SELECT CAST(id AS TEXT), name, avatarUrl, avatarData, overallStreak, joinedDate FROM user_profile_old
+        ''');
+        await db.execute("DROP TABLE IF EXISTS user_profile_old");
+      } catch (_) {}
+    }
   }
 
   Future<void> _seedInitialData(Database db) async {
@@ -268,6 +288,19 @@ userId TEXT NOT NULL DEFAULT '1'
     return result.map((json) => HabitModel.fromMap(json)).toList();
   }
 
+  Future<HabitModel?> getHabit(String id, String userId) async {
+    final db = await instance.database;
+    final maps = await db.query(
+      'habits',
+      where: 'id = ? AND userId = ?',
+      whereArgs: [id, userId],
+    );
+    if (maps.isNotEmpty) {
+      return HabitModel.fromMap(maps.first);
+    }
+    return null;
+  }
+
   Future<int> insertHabit(HabitModel habit, String userId) async {
     final db = await instance.database;
     final map = habit.toMap();
@@ -300,18 +333,18 @@ userId TEXT NOT NULL DEFAULT '1'
     );
   }
 
-  Future<UserProfileModel> getUserProfile(int id) async {
+  Future<UserProfileModel> getUserProfile(String userId) async {
     final db = await instance.database;
     final maps = await db.query(
       'user_profile',
-      where: 'id = ?',
-      whereArgs: [id],
+      where: 'userId = ?',
+      whereArgs: [userId],
     );
     if (maps.isNotEmpty) {
       return UserProfileModel.fromMap(maps.first);
     }
     return UserProfileModel(
-      id: id,
+      userId: userId,
       name: 'Alex',
       avatarUrl: '',
       overallStreak: 12,
@@ -321,25 +354,18 @@ userId TEXT NOT NULL DEFAULT '1'
 
   Future<int> insertUserProfile(UserProfileModel profile) async {
     final db = await instance.database;
-    final map = profile.toMap();
-    map.remove('id'); // Let SQLite auto-increment the ID
     return await db.insert(
       'user_profile',
-      map,
+      profile.toMap(),
+      conflictAlgorithm: ConflictAlgorithm.replace,
     );
   }
 
   Future<int> updateUserProfile(UserProfileModel profile) async {
     final db = await instance.database;
-    final map = profile.toMap();
-    if (profile.id == null) {
-      map['id'] = 1;
-    } else {
-      map['id'] = profile.id;
-    }
     return await db.insert(
       'user_profile',
-      map,
+      profile.toMap(),
       conflictAlgorithm: ConflictAlgorithm.replace,
     );
   }
@@ -348,6 +374,70 @@ userId TEXT NOT NULL DEFAULT '1'
     final db = await instance.database;
     final maps = await db.query('user_profile');
     return maps.map((m) => UserProfileModel.fromMap(m)).toList();
+  }
+
+  Future<String?> getEmailForUid(String uid) async {
+    final db = await instance.database;
+    final maps = await db.query(
+      'users',
+      columns: ['email'],
+      where: 'uid = ?',
+      whereArgs: [uid],
+    );
+    if (maps.isNotEmpty) {
+      return maps.first['email'] as String?;
+    }
+    return null;
+  }
+
+  Future<void> migrateUserData(String oldUserId, String newUserId) async {
+    final db = await instance.database;
+
+    // 1. Copy habits of oldUserId to newUserId with unique IDs
+    final habits = await db.query(
+      'habits',
+      where: 'userId = ?',
+      whereArgs: [oldUserId],
+    );
+    for (int i = 0; i < habits.length; i++) {
+      final copy = Map<String, dynamic>.from(habits[i]);
+      copy['userId'] = newUserId;
+      copy['isSynced'] = 0;
+      copy['id'] = 'habit_${DateTime.now().millisecondsSinceEpoch}_${newUserId}_$i';
+      await db.insert(
+        'habits',
+        copy,
+        conflictAlgorithm: ConflictAlgorithm.replace,
+      );
+    }
+
+    // 2. Migrate user profile if the destination doesn't have one yet
+    final oldProfileMaps = await db.query(
+      'user_profile',
+      where: 'userId = ?',
+      whereArgs: [oldUserId],
+    );
+    if (oldProfileMaps.isNotEmpty) {
+      final oldProfileData = Map<String, dynamic>.from(oldProfileMaps.first);
+      oldProfileData['userId'] = newUserId;
+      await db.insert(
+        'user_profile',
+        oldProfileData,
+        conflictAlgorithm: ConflictAlgorithm.ignore, // Keep existing cloud profile if synced before
+      );
+    }
+
+    // 3. Delete original local profile and habits of oldUserId to prevent duplicates
+    await db.delete(
+      'user_profile',
+      where: 'userId = ?',
+      whereArgs: [oldUserId],
+    );
+    await db.delete(
+      'habits',
+      where: 'userId = ?',
+      whereArgs: [oldUserId],
+    );
   }
 
   // User Authentication Helper Methods
@@ -359,7 +449,7 @@ userId TEXT NOT NULL DEFAULT '1'
         'email': email,
         'uid': uid,
         'isLoggedIn': 1,
-        'isCloudSyncEnabled': 0,
+        'isCloudSyncEnabled': 1,
       },
       conflictAlgorithm: ConflictAlgorithm.replace,
     );
@@ -367,7 +457,7 @@ userId TEXT NOT NULL DEFAULT '1'
     // Update user profile name based on email prefix
     final profileName = email.split('@')[0];
     final defaultProfile = {
-      'id': 1,
+      'userId': uid,
       'name': profileName[0].toUpperCase() + profileName.substring(1),
       'avatarUrl': '',
       'overallStreak': 12,
@@ -382,6 +472,13 @@ userId TEXT NOT NULL DEFAULT '1'
     // Set all other users to logged out first
     await db.update('users', {'isLoggedIn': 0});
     
+    // Check if the user already exists to preserve their cloud sync setting
+    final existing = await db.query('users', where: 'uid = ?', whereArgs: [uid]);
+    int syncEnabled = 1;
+    if (existing.isNotEmpty) {
+      syncEnabled = existing.first['isCloudSyncEnabled'] as int? ?? 1;
+    }
+
     // Set isLoggedIn to 1 for this user
     await db.insert(
       'users',
@@ -389,6 +486,7 @@ userId TEXT NOT NULL DEFAULT '1'
         'email': email,
         'uid': uid,
         'isLoggedIn': 1,
+        'isCloudSyncEnabled': syncEnabled,
       },
       conflictAlgorithm: ConflictAlgorithm.replace,
     );
@@ -396,7 +494,7 @@ userId TEXT NOT NULL DEFAULT '1'
     // Load/Restore user profile name based on email
     final profileName = email.split('@')[0];
     final defaultProfile = {
-      'id': 1,
+      'userId': uid,
       'name': profileName[0].toUpperCase() + profileName.substring(1),
       'avatarUrl': '',
       'overallStreak': 12,

@@ -92,6 +92,7 @@ class SyncService {
         final data = doc.data()!;
         final blob = data['avatarData'] as Blob?;
         return UserProfileModel(
+          userId: uid,
           name: data['name'] as String? ?? '',
           avatarUrl: data['avatarUrl'] as String? ?? '',
           avatarData: blob?.bytes,
@@ -125,7 +126,7 @@ class SyncService {
     if (email != null) {
       final syncEnabled = await db.isCloudSyncEnabled(email);
       if (syncEnabled) {
-        final profile = await db.getUserProfile(1);
+        final profile = await db.getUserProfile(uid);
         await uploadProfile(uid, profile);
       }
     }

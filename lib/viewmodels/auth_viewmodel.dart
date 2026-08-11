@@ -92,7 +92,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
     }
   }
 
-  Future<bool> signIn(String email, String password) async {
+  Future<bool> signIn(String email, String password, {bool isFromSettings = false}) async {
     state = state.copyWith(status: AuthStatus.loading, errorMessage: null);
 
     // First login check: must have active internet connection
@@ -113,14 +113,25 @@ class AuthNotifier extends StateNotifier<AuthState> {
       final user = userCredential.user;
       if (user != null) {
         final uid = user.uid;
+        final oldUserId = await DatabaseHelper.instance.getSetting('active_profile_id', '1');
 
         // Save session locally in SQLite without password
         await DatabaseHelper.instance.verifyAndLoginUser(email, uid);
         final syncEnabled = await DatabaseHelper.instance.isCloudSyncEnabled(email);
 
+        if (isFromSettings) {
+          // Migrate local profile and habits data to Firebase UID
+          await DatabaseHelper.instance.migrateUserData(oldUserId, uid);
+        }
+
         // Download existing cloud data if available
         final downloadedHabits = await SyncService.downloadHabits(uid);
         for (final habit in downloadedHabits) {
+          final localHabit = await DatabaseHelper.instance.getHabit(habit.id, uid);
+          if (localHabit != null && localHabit.isSynced == 0) {
+            // Keep local unsynced modifications instead of overwriting with older cloud data
+            continue;
+          }
           // Mark downloaded items as already synced locally
           final syncedHabit = habit.copyWith(isSynced: 1);
           await DatabaseHelper.instance.insertHabit(syncedHabit, uid);
@@ -134,6 +145,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
           // Restore user profile default name
           final profileName = email.split('@')[0];
           final defaultProfile = UserProfileModel(
+            userId: uid,
             name: profileName[0].toUpperCase() + profileName.substring(1),
             avatarUrl: '',
             overallStreak: 12,
@@ -147,8 +159,6 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
         final carousel = await DatabaseHelper.instance.getSetting('carousel_viewed', 'false');
 
-        // Initialize viewmodel local state
-        await _ref.read(habitViewModelProvider.notifier).loadData();
         state = AuthState(
           status: carousel == 'true' ? AuthStatus.authenticated : AuthStatus.onboarding,
           email: email,
@@ -178,7 +188,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
     }
   }
 
-  Future<bool> signUp(String email, String password) async {
+  Future<bool> signUp(String email, String password, {bool isFromSettings = false}) async {
     state = state.copyWith(status: AuthStatus.loading, errorMessage: null);
 
     // First login check: must have active internet connection
@@ -199,16 +209,21 @@ class AuthNotifier extends StateNotifier<AuthState> {
       final user = userCredential.user;
       if (user != null) {
         final uid = user.uid;
+        final oldUserId = await DatabaseHelper.instance.getSetting('active_profile_id', '1');
 
         // Save session locally in SQLite
         await DatabaseHelper.instance.registerUser(email, uid);
+
+        if (isFromSettings) {
+          // Migrate local profile and habits data to Firebase UID
+          await DatabaseHelper.instance.migrateUserData(oldUserId, uid);
+        }
 
         // Set onboarding completed
         await DatabaseHelper.instance.saveSetting('onboarding_completed', 'true');
 
         final carousel = await DatabaseHelper.instance.getSetting('carousel_viewed', 'false');
 
-        await _ref.read(habitViewModelProvider.notifier).loadData();
         state = AuthState(
           status: carousel == 'true' ? AuthStatus.authenticated : AuthStatus.onboarding,
           email: email,
@@ -255,22 +270,32 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
   Future<void> completeLocalSetup(String name) async {
     try {
+      final profiles = await DatabaseHelper.instance.getAllLocalProfiles();
+      int maxId = 0;
+      for (final p in profiles) {
+        final val = int.tryParse(p.userId);
+        if (val != null && val > maxId) {
+          maxId = val;
+        }
+      }
+      final newProfileId = (maxId + 1).toString();
+
       final profile = UserProfileModel(
+        userId: newProfileId,
         name: name,
         avatarUrl: '',
         overallStreak: 12,
         joinedDate: DateFormat('MMMM yyyy').format(DateTime.now()),
       );
-      final newProfileId = await DatabaseHelper.instance.insertUserProfile(profile);
+      await DatabaseHelper.instance.insertUserProfile(profile);
       await DatabaseHelper.instance.saveSetting('onboarding_completed', 'true');
       await DatabaseHelper.instance.saveSetting('local_profile_created', 'true');
-      await DatabaseHelper.instance.saveSetting('active_profile_id', newProfileId.toString());
+      await DatabaseHelper.instance.saveSetting('active_profile_id', newProfileId);
       
-      await _ref.read(habitViewModelProvider.notifier).loadData();
       state = AuthState(
         status: AuthStatus.onboarding,
         email: null,
-        userId: newProfileId.toString(),
+        userId: newProfileId,
         isCloudSyncEnabled: false,
       );
     } catch (e) {
@@ -284,12 +309,30 @@ class AuthNotifier extends StateNotifier<AuthState> {
       await DatabaseHelper.instance.saveSetting('carousel_viewed', 'true');
       await DatabaseHelper.instance.saveSetting('active_profile_id', profileId);
       
-      await _ref.read(habitViewModelProvider.notifier).loadData();
       state = AuthState(
         status: AuthStatus.authenticated,
         email: null,
         userId: profileId,
         isCloudSyncEnabled: false,
+      );
+    } catch (e) {
+      state = state.copyWith(errorMessage: e.toString());
+    }
+  }
+
+  Future<void> loginAsSyncedUser(String email, String uid) async {
+    try {
+      await DatabaseHelper.instance.verifyAndLoginUser(email, uid);
+      await DatabaseHelper.instance.saveSetting('onboarding_completed', 'true');
+      await DatabaseHelper.instance.saveSetting('carousel_viewed', 'true');
+      await DatabaseHelper.instance.saveSetting('active_profile_id', uid);
+      
+      final syncEnabled = await DatabaseHelper.instance.isCloudSyncEnabled(email);
+      state = AuthState(
+        status: AuthStatus.authenticated,
+        email: email,
+        userId: uid,
+        isCloudSyncEnabled: syncEnabled,
       );
     } catch (e) {
       state = state.copyWith(errorMessage: e.toString());
@@ -306,7 +349,6 @@ class AuthNotifier extends StateNotifier<AuthState> {
   }
 
   Future<void> signOut() async {
-    final wasSynced = state.email != null;
     state = state.copyWith(status: AuthStatus.loading);
     try {
       await _auth.signOut();
@@ -315,23 +357,8 @@ class AuthNotifier extends StateNotifier<AuthState> {
       // Reset onboarding settings
       await DatabaseHelper.instance.saveSetting('onboarding_completed', 'false');
       await DatabaseHelper.instance.saveSetting('carousel_viewed', 'false');
-      
-      if (wasSynced) {
-        // If synced user, clear local profile and reset flag
-        await DatabaseHelper.instance.saveSetting('local_profile_created', 'false');
-        final defaultProfile = UserProfileModel(
-          name: 'Alex',
-          avatarUrl: '',
-          overallStreak: 12,
-          joinedDate: 'October 2024',
-        );
-        await DatabaseHelper.instance.updateUserProfile(defaultProfile);
-      } else {
-        // If local-only user, keep the profile and keep local_profile_created true
-        await DatabaseHelper.instance.saveSetting('local_profile_created', 'true');
-      }
-      
-      await _ref.read(habitViewModelProvider.notifier).loadData();
+      await DatabaseHelper.instance.saveSetting('active_profile_id', '1');
+      await DatabaseHelper.instance.saveSetting('local_profile_created', 'true');
       
       state = AuthState(
         status: AuthStatus.unauthenticated,
@@ -343,6 +370,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
       state = AuthState(
         status: AuthStatus.unauthenticated,
         email: null,
+        userId: null,
         isCloudSyncEnabled: false,
         errorMessage: e.toString(),
       );

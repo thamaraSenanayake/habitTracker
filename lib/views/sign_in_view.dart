@@ -35,9 +35,9 @@ class _SignInViewState extends ConsumerState<SignInView> {
 
     bool success;
     if (_isSignUpMode) {
-      success = await notifier.signUp(email, password);
+      success = await notifier.signUp(email, password, isFromSettings: widget.isFromSettings);
     } else {
-      success = await notifier.signIn(email, password);
+      success = await notifier.signIn(email, password, isFromSettings: widget.isFromSettings);
     }
 
     if (!mounted) return;
