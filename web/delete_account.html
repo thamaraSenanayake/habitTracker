@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HabitFlow - Account & Data Deletion Request</title>
+    <!-- Plus Jakarta Sans Font -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #0F172A;
+            --card-bg: #1E293B;
+            --text-color: #F8FAFC;
+            --text-muted: #94A3B8;
+            --primary: #22C55E;
+            --primary-hover: #16A34A;
+            --border-color: #334155;
+        }
+
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: min-content;
+            box-sizing: border-box;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 600px;
+            padding: 40px 20px;
+        }
+
+        .card {
+            background-color: var(--card-bg);
+            border-radius: 24px;
+            padding: 40px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3), 0 10px 10px -5px rgba(0, 0, 0, 0.2);
+        }
+
+        .logo-container {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 24px;
+        }
+
+        .logo {
+            width: 80px;
+            height: 80px;
+            border-radius: 16px;
+            box-shadow: 0 4px 15px rgba(34, 197, 94, 0.2);
+        }
+
+        h1 {
+            font-size: 28px;
+            font-weight: 700;
+            text-align: center;
+            margin: 0 0 8px 0;
+            letter-spacing: -0.5px;
+        }
+
+        .subtitle {
+            color: var(--text-muted);
+            text-align: center;
+            margin-top: 0;
+            margin-bottom: 32px;
+            font-size: 15px;
+        }
+
+        h2 {
+            font-size: 18px;
+            font-weight: 600;
+            margin-top: 32px;
+            margin-bottom: 12px;
+            color: var(--text-color);
+        }
+
+        p, li {
+            color: var(--text-muted);
+            font-size: 14px;
+            line-height: 1.6;
+        }
+
+        ul {
+            padding-left: 20px;
+            margin-bottom: 24px;
+        }
+
+        li {
+            margin-bottom: 8px;
+        }
+
+        .button-group {
+            margin-top: 32px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .btn {
+            display: block;
+            text-align: center;
+            padding: 14px;
+            border-radius: 12px;
+            font-weight: 600;
+            text-decoration: none;
+            font-size: 15px;
+            transition: all 0.2s ease;
+        }
+
+        .btn-primary {
+            background-color: var(--primary);
+            color: #ffffff;
+            box-shadow: 0 4px 15px rgba(34, 197, 94, 0.25);
+        }
+
+        .btn-primary:hover {
+            background-color: var(--primary-hover);
+        }
+
+        .btn-secondary {
+            border: 1px solid var(--border-color);
+            color: var(--text-color);
+        }
+
+        .btn-secondary:hover {
+            background-color: rgba(255, 255, 255, 0.05);
+        }
+
+        .footer {
+            margin-top: 40px;
+            text-align: center;
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        .footer a {
+            color: var(--primary);
+            text-decoration: none;
+        }
+
+        .footer a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="card">
+            <div class="logo-container">
+                <!-- Fallback to placeholder or image if available -->
+                <img class="logo" src="https://lh3.googleusercontent.com/aida/AP1WRLsOUaATy_IGSrMYzjFYLbHb0aKLKK90YKOxJyQDQKuIZHdwEJ0xPJkDUCBkO3jfwWZXMEiIGoCHun8r88Lo0FPxZez5ZwBA3hF7zDyJeBQJWPyQOmbMDiz5QbXzqyhRZkpZoblZRlGDz5V78ULJQeLAJVZKEjQNSj-VrXCmatxHidUYEze1fvSI2AurgV20rfnvkJfVFcwkTApfeXMQ8-Yi9CHCMQOAqrVIjXyMPImUdxbkY_jbZnffLP00" alt="HabitFlow Logo">
+            </div>
+            
+            <h1>HabitFlow</h1>
+            <p class="subtitle">Account & Associated Data Deletion</p>
+
+            <p>At <strong>HabitFlow</strong>, we respect your privacy and provide complete control over your personal data. You can delete your cloud synchronization account and all associated habit tracking details at any time.</p>
+
+            <h2>What Data Will Be Deleted?</h2>
+            <p>When you request account deletion, all synced information is permanently and irreversibly purged from our servers, including:</p>
+            <ul>
+                <li>Your account authentication profile (email address and login credentials).</li>
+                <li>Your user profile information (display name, streaks, and settings).</li>
+                <li>All synced habits, completed calendar logs, counters, and statistics.</li>
+            </ul>
+
+            <h2>How to Delete Your Account</h2>
+            
+            <h3>Method 1: In-App (Instant)</h3>
+            <p>The fastest way to delete your data is directly inside the HabitFlow mobile application:</p>
+            <ul>
+                <li>Open the <strong>HabitFlow</strong> app.</li>
+                <li>Go to the <strong>Settings</strong> screen (gear icon).</li>
+                <li>Scroll to the bottom and click on the <strong>Delete Account / Reset Profile</strong> button.</li>
+                <li>Confirm the request. All cloud and local database records will be erased instantly.</li>
+            </ul>
+
+            <h3>Method 2: Web Deletion Request (Up to 7 Days)</h3>
+            <p>If you have already uninstalled the app and wish to delete your cloud data without reinstalling, please request deletion by clicking the button below to email us:</p>
+
+            <div class="button-group">
+                <a class="btn btn-primary" href="mailto:thamarasenanayake@gmail.com?subject=HabitFlow Account Deletion Request&body=Please delete my HabitFlow account and all associated data. My registered email is: [Enter registered email address]">
+                    Request Deletion via Email
+                </a>
+            </div>
+        </div>
+
+        <div class="footer">
+            <p>© 2026 HabitFlow. All rights reserved.</p>
+        </div>
+    </div>
+</body>
+</html>

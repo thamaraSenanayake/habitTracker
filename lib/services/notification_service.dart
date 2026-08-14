@@ -24,8 +24,15 @@ class NotificationService {
     try {
       // 1. Initialize Timezones
       tz.initializeTimeZones();
-      final TimezoneInfo timeZoneName = await FlutterTimezone.getLocalTimezone();
-      tz.setLocalLocation(tz.getLocation(timeZoneName.identifier));
+      try {
+        final TimezoneInfo timeZoneName = await FlutterTimezone.getLocalTimezone();
+        tz.setLocalLocation(tz.getLocation(timeZoneName.identifier));
+      } catch (e) {
+        debugPrint('Failed to get platform timezone, falling back to UTC: $e');
+        try {
+          tz.setLocalLocation(tz.getLocation('UTC'));
+        } catch (_) {}
+      }
 
       // 2. Initialize Notifications Settings
       const AndroidInitializationSettings androidSettings =
@@ -75,7 +82,11 @@ class NotificationService {
             .resolvePlatformSpecificImplementation<
                 AndroidFlutterLocalNotificationsPlugin>();
         await androidPlugin?.requestNotificationsPermission();
-        await androidPlugin?.requestExactAlarmsPermission();
+        try {
+          await androidPlugin?.requestExactAlarmsPermission();
+        } catch (e) {
+          debugPrint('Error requesting exact alarm permission: $e');
+        }
       }
     } catch (e) {
       debugPrint('Error requesting notification permissions: $e');
@@ -142,16 +153,30 @@ class NotificationService {
           iOS: iosDetails,
         );
 
-        await _notificationsPlugin.zonedSchedule(
-          id: notificationId,
-          title: 'Time for ${habit.title}!',
-          body: habit.subtitle.isNotEmpty ? habit.subtitle : 'Keep up the streak!',
-          scheduledDate: scheduledDate,
-          notificationDetails: details,
-          androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
-          matchDateTimeComponents: DateTimeComponents.time, // Daily repeat
-          payload: habit.id,
-        );
+        try {
+          await _notificationsPlugin.zonedSchedule(
+            id: notificationId,
+            title: 'Time for ${habit.title}!',
+            body: habit.subtitle.isNotEmpty ? habit.subtitle : 'Keep up the streak!',
+            scheduledDate: scheduledDate,
+            notificationDetails: details,
+            androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+            matchDateTimeComponents: DateTimeComponents.time, // Daily repeat
+            payload: habit.id,
+          );
+        } catch (e) {
+          debugPrint('Exact alarm scheduling failed, falling back to inexact: $e');
+          await _notificationsPlugin.zonedSchedule(
+            id: notificationId,
+            title: 'Time for ${habit.title}!',
+            body: habit.subtitle.isNotEmpty ? habit.subtitle : 'Keep up the streak!',
+            scheduledDate: scheduledDate,
+            notificationDetails: details,
+            androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+            matchDateTimeComponents: DateTimeComponents.time, // Daily repeat
+            payload: habit.id,
+          );
+        }
 
         scheduledCount++;
       }

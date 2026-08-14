@@ -532,6 +532,7 @@ class _PasswordVerificationDialogState
           TextField(
             controller: _passwordController,
             obscureText: _obscureText,
+            enabled: !_isLoading,
             style: GoogleFonts.plusJakartaSans(color: context.textColor),
             decoration: InputDecoration(
               hintText: 'Enter password',

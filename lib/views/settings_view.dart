@@ -207,7 +207,7 @@ class _SettingsViewState extends ConsumerState<SettingsView> {
                             iconColor: const Color(0xFF60A5FA),
                             title: 'Account & Cloud Sync',
                             value: ref.watch(authProvider).isCloudSyncEnabled,
-                            onChanged: (val) {
+                            onChanged: (val) async {
                               if (val && ref.read(authProvider).email == null) {
                                 Navigator.push(
                                   context,
@@ -216,7 +216,34 @@ class _SettingsViewState extends ConsumerState<SettingsView> {
                                   ),
                                 );
                               } else {
-                                ref.read(authProvider.notifier).toggleCloudSync(val);
+                                // Show loader dialog to prevent input while syncing
+                                showDialog(
+                                  context: context,
+                                  barrierDismissible: false,
+                                  builder: (context) => Center(
+                                    child: Container(
+                                      padding: const EdgeInsets.all(24),
+                                      decoration: BoxDecoration(
+                                        color: context.isDark
+                                            ? const Color(0xFF1E293B)
+                                            : Colors.white,
+                                        borderRadius: BorderRadius.circular(16),
+                                      ),
+                                      child: const CircularProgressIndicator(
+                                        valueColor: AlwaysStoppedAnimation<Color>(
+                                          Color(0xFF22C55E),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                );
+                                try {
+                                  await ref.read(authProvider.notifier).toggleCloudSync(val);
+                                } finally {
+                                  if (context.mounted) {
+                                    Navigator.pop(context);
+                                  }
+                                }
                               }
                             },
                           ),
@@ -304,21 +331,21 @@ class _SettingsViewState extends ConsumerState<SettingsView> {
                                   .setNotificationsEnabled(val);
                             },
                           ),
-                          Divider(
-                            color: context.textColor.withOpacity(0.05),
-                            height: 1,
-                          ),
-                          _buildSwitchTile(
-                            icon: Icons.volume_up_rounded,
-                            iconColor: const Color(0xFFF472B6),
-                            title: 'Sound Effects',
-                            value: settings.soundEnabled,
-                            onChanged: (val) {
-                              ref
-                                  .read(settingsProvider.notifier)
-                                  .setSoundEnabled(val);
-                            },
-                          ),
+                          // Divider(
+                          //   color: context.textColor.withOpacity(0.05),
+                          //   height: 1,
+                          // ),
+                          // _buildSwitchTile(
+                          //   icon: Icons.volume_up_rounded,
+                          //   iconColor: const Color(0xFFF472B6),
+                          //   title: 'Sound Effects',
+                          //   value: settings.soundEnabled,
+                          //   onChanged: (val) {
+                          //     ref
+                          //         .read(settingsProvider.notifier)
+                          //         .setSoundEnabled(val);
+                          //   },
+                          // ),
                         ],
                       ),
                     ),
@@ -347,16 +374,23 @@ class _SettingsViewState extends ConsumerState<SettingsView> {
                               );
                             },
                           ),
-                          Divider(
-                            color: context.textColor.withOpacity(0.05),
-                            height: 1,
-                          ),
-                          _buildLinkTile(
-                            icon: Icons.star_rounded,
-                            iconColor: const Color(0xFFF59E0B),
-                            title: 'Rate App on Play Store',
-                            isExternal: true,
-                          ),
+                          // Divider(
+                          //   color: context.textColor.withOpacity(0.05),
+                          //   height: 1,
+                          // ),
+                          // _buildLinkTile(
+                          //   icon: Icons.star_rounded,
+                          //   iconColor: const Color(0xFFF59E0B),
+                          //   title: 'Rate App on Play Store',
+                          //   onTap: () {
+                          //     Navigator.push(
+                          //       context,
+                          //       MaterialPageRoute(
+                          //         builder: (context) => const PrivacyPolicyView(),
+                          //       ),
+                          //     );
+                          //   },
+                          // ),
                         ],
                       ),
                     ),

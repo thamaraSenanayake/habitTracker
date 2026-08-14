@@ -262,7 +262,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
       if (enabled) {
         final uid = await DatabaseHelper.instance.getLoggedInUserUid();
         if (uid != null) {
-          _ref.read(habitViewModelProvider.notifier).syncPendingHabits(uid);
+          await _ref.read(habitViewModelProvider.notifier).syncPendingHabits(uid);
         }
       }
     }

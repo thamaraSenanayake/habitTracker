@@ -12,7 +12,7 @@ import 'package:habit_flow/models/habit_model.dart';
 import 'package:habit_flow/models/user_profile_model.dart';
 
 class MockHabitViewModel extends HabitViewModel {
-  MockHabitViewModel() : super();
+  MockHabitViewModel(Ref ref) : super(ref);
 
   @override
   Future<void> loadData() async {
@@ -37,6 +37,7 @@ class MockHabitViewModel extends HabitViewModel {
         ),
       ],
       userProfile: UserProfileModel(
+        userId: '1',
         name: 'Alex',
         avatarUrl: '',
         overallStreak: 12,
@@ -55,15 +56,20 @@ class MockAuthNotifier extends AuthNotifier {
   }
 
   @override
-  Future<bool> signIn(String email, String password) async {
-    state = AuthState(status: AuthStatus.authenticated, email: email);
+  Future<bool> signIn(String email, String password, {bool isFromSettings = false}) async {
+    state = AuthState(status: AuthStatus.onboarding, email: email);
     return true;
   }
 
   @override
-  Future<bool> signUp(String email, String password) async {
-    state = AuthState(status: AuthStatus.authenticated, email: email);
+  Future<bool> signUp(String email, String password, {bool isFromSettings = false}) async {
+    state = AuthState(status: AuthStatus.onboarding, email: email);
     return true;
+  }
+
+  @override
+  Future<void> completeOnboardingCarousel() async {
+    state = state.copyWith(status: AuthStatus.authenticated);
   }
 
   @override
@@ -116,7 +122,7 @@ void main() {
       await tester.pumpWidget(
         ProviderScope(
           overrides: [
-            habitViewModelProvider.overrideWith((ref) => MockHabitViewModel()),
+            habitViewModelProvider.overrideWith((ref) => MockHabitViewModel(ref)),
             authProvider.overrideWith((ref) => MockAuthNotifier(ref)),
             themeProvider.overrideWith((ref) => MockThemeNotifier()),
             settingsProvider.overrideWith((ref) => MockSettingsNotifier()),
@@ -124,8 +130,17 @@ void main() {
           child: const HabitFlowApp(),
         ),
       );
+      await tester.pumpAndSettle();
 
-      // Verify that we start on the SignInView
+      // Verify that we start on the WelcomeView onboarding screen
+      expect(find.text('Get Started'), findsOneWidget);
+
+      // Navigate to SignInView via the membership link
+      await tester.ensureVisible(find.byType(TextButton));
+      await tester.tap(find.byType(TextButton));
+      await tester.pumpAndSettle();
+
+      // Verify that we are on the SignInView
       expect(find.text('Email Address'), findsOneWidget);
       expect(find.text('Password'), findsOneWidget);
       expect(find.text('Sign In'), findsOneWidget);
@@ -139,7 +154,15 @@ void main() {
       await tester.tap(find.widgetWithText(ElevatedButton, 'Sign In'));
       await tester.pumpAndSettle();
 
-      // Verify that we successfully logged in and transitioned to TodayView
+      // Verify that we are transitioned to the OnboardingCarouselView screen
+      expect(find.text("How it works"), findsOneWidget);
+      expect(find.text("Got It!"), findsOneWidget);
+
+      // Tap the action button to complete the onboarding carousel
+      await tester.tap(find.widgetWithText(ElevatedButton, 'Got It!'));
+      await tester.pumpAndSettle();
+
+      // Verify that we successfully transitioned to TodayView
       expect(find.text("Today's Habits"), findsOneWidget);
       expect(find.text("Drink Water"), findsOneWidget);
 
@@ -156,7 +179,7 @@ void main() {
       await tester.pumpAndSettle();
 
       // Tap the FAB to navigate to AddHabitView
-      await tester.tap(find.byType(FloatingActionButton));
+      await tester.tap(find.byIcon(Icons.add_rounded));
       await tester.pumpAndSettle();
 
       // Verify AddHabitView is visible
@@ -178,9 +201,8 @@ void main() {
       await tester.tap(find.text('Sign Out'));
       await tester.pumpAndSettle();
 
-      // Verify that we are transitioned back to the SignInView
-      expect(find.text('Email Address'), findsOneWidget);
-      expect(find.text('Sign In'), findsOneWidget);
+      // Verify that we are transitioned back to the WelcomeView onboarding screen
+      expect(find.text('Get Started'), findsOneWidget);
     }, createHttpClient: (context) => _MockHttpClient());
   });
 }

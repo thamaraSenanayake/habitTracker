@@ -161,15 +161,16 @@ class HabitViewModel extends StateNotifier<HabitState> {
     );
 
     await _dbHelper.insertHabit(habitToSave, activeUserId);
+    await loadData();
 
     if (cloudSyncEnabled && uid != null) {
-      final success = await SyncService.uploadHabit(uid, habitToSave);
-      if (success) {
-        await _dbHelper.markHabitSynced(habitToSave.id);
-      }
+      SyncService.uploadHabit(uid, habitToSave).then((success) async {
+        if (success) {
+          await _dbHelper.markHabitSynced(habitToSave.id);
+          await loadData();
+        }
+      });
     }
-
-    await loadData();
   }
 
   Future<void> deleteHabit(String habitId) async {
@@ -181,12 +182,11 @@ class HabitViewModel extends StateNotifier<HabitState> {
     final cloudSyncEnabled = uid != null && email != null && await _dbHelper.isCloudSyncEnabled(email);
 
     await _dbHelper.deleteHabit(habitId, activeUserId);
+    await loadData();
 
     if (cloudSyncEnabled && uid != null) {
-      await SyncService.deleteHabit(uid, habitId);
+      SyncService.deleteHabit(uid, habitId);
     }
-
-    await loadData();
   }
 
   Future<void> updateProfile(UserProfileModel profile) async {
@@ -202,7 +202,7 @@ class HabitViewModel extends StateNotifier<HabitState> {
     if (uid != null && email != null) {
       final cloudSyncEnabled = await _dbHelper.isCloudSyncEnabled(email);
       if (cloudSyncEnabled) {
-        await SyncService.uploadProfile(uid, updatedProfile);
+        SyncService.uploadProfile(uid, updatedProfile);
       }
     }
   }

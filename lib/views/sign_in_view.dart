@@ -164,6 +164,7 @@ class _SignInViewState extends ConsumerState<SignInView> {
                             TextFormField(
                               controller: _emailController,
                               keyboardType: TextInputType.emailAddress,
+                              enabled: authState.status != AuthStatus.loading,
                               style: GoogleFonts.plusJakartaSans(
                                 color: context.textColor,
                               ),
@@ -221,6 +222,7 @@ class _SignInViewState extends ConsumerState<SignInView> {
                             TextFormField(
                               controller: _passwordController,
                               obscureText: _obscurePassword,
+                              enabled: authState.status != AuthStatus.loading,
                               style: GoogleFonts.plusJakartaSans(
                                 color: context.textColor,
                               ),
