@@ -37,7 +37,7 @@ class PrivacyPolicyView extends StatelessWidget {
                 style: GoogleFonts.plusJakartaSans(
                   fontSize: 22,
                   fontWeight: FontWeight.bold,
-                  color: const Color(0xFF8083FF),
+                  color: const Color(0xFF22C55E),
                 ),
               ),
               const SizedBox(height: 10),

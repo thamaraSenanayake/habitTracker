@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HabitFlow - Account & Data Deletion Request</title>
+    <title>HabitFlow - Privacy Policy</title>
     <!-- Plus Jakarta Sans Font -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -15,7 +15,6 @@
             --text-color: #F8FAFC;
             --text-muted: #94A3B8;
             --primary: #22C55E;
-            --primary-hover: #16A34A;
             --border-color: #334155;
         }
 
@@ -65,6 +64,7 @@
             text-align: center;
             margin: 0 0 8px 0;
             letter-spacing: -0.5px;
+            color: var(--primary);
         }
 
         .subtitle {
@@ -81,6 +81,8 @@
             margin-top: 32px;
             margin-bottom: 12px;
             color: var(--text-color);
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 8px;
         }
 
         p, li {
@@ -96,43 +98,6 @@
 
         li {
             margin-bottom: 8px;
-        }
-
-        .button-group {
-            margin-top: 32px;
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-        }
-
-        .btn {
-            display: block;
-            text-align: center;
-            padding: 14px;
-            border-radius: 12px;
-            font-weight: 600;
-            text-decoration: none;
-            font-size: 15px;
-            transition: all 0.2s ease;
-        }
-
-        .btn-primary {
-            background-color: var(--primary);
-            color: #ffffff;
-            box-shadow: 0 4px 15px rgba(34, 197, 94, 0.25);
-        }
-
-        .btn-primary:hover {
-            background-color: var(--primary-hover);
-        }
-
-        .btn-secondary {
-            border: 1px solid var(--border-color);
-            color: var(--text-color);
-        }
-
-        .btn-secondary:hover {
-            background-color: rgba(255, 255, 255, 0.05);
         }
 
         .footer {
@@ -156,46 +121,32 @@
     <div class="container">
         <div class="card">
             <div class="logo-container">
-                <!-- Fallback to placeholder or image if available -->
                 <img class="logo" src="https://thamarasenanayake.github.io/habitTracker/web/assets/logo.png" alt="HabitFlow Logo">
             </div>
             
             <h1>HabitFlow</h1>
-            <p class="subtitle">Account & Associated Data Deletion</p>
+            <p class="subtitle">Privacy Policy • Last Updated: August 2026</p>
 
-            <p>At <strong>HabitFlow</strong>, we respect your privacy and provide complete control over your personal data. You can delete your cloud synchronization account and all associated habit tracking details at any time.</p>
+            <p>At <strong>HabitFlow</strong>, your privacy is our highest priority. This Privacy Policy details how we handle, secure, and respect your sensitive user and device data.</p>
 
-            <h2>What Data Will Be Deleted?</h2>
-            <p>When you request account deletion, all synced information is permanently and irreversibly purged from our servers, including:</p>
-            <ul>
-                <li>Your account authentication profile (email address and login credentials).</li>
-                <li>Your user profile information (display name, streaks, and settings).</li>
-                <li>All synced habits, completed calendar logs, counters, and statistics.</li>
-            </ul>
+            <h2>1. Local-First Data Storage</h2>
+            <p>HabitFlow prioritizes your privacy by keeping your data on your device. All habits, completion history, streaks, and settings are saved locally using a secure SQLite database. We do not require passwords to be stored locally to ensure maximum security.</p>
 
-            <h2>How to Delete Your Account</h2>
-            
-            <h3>Method 1: In-App (Instant)</h3>
-            <p>The fastest way to delete your data is directly inside the HabitFlow mobile application:</p>
-            <ul>
-                <li>Open the <strong>HabitFlow</strong> app.</li>
-                <li>Go to the <strong>Settings</strong> screen (gear icon).</li>
-                <li>Scroll to the bottom and click on the <strong>Delete Account / Reset Profile</strong> button.</li>
-                <li>Confirm the request. All cloud and local database records will be erased instantly.</li>
-            </ul>
+            <h2>2. Optional Cloud Sync</h2>
+            <p>You have full control over your data. By enabling "Account & Cloud Sync" in the settings, your profile picture, username, and habit logs will sync with Google Firebase Firestore to support multiple devices. Toggling this option off immediately stops cloud uploads, keeping your logs entirely offline.</p>
 
-            <h3>Method 2: Web Deletion Request (Up to 7 Days)</h3>
-            <p>If you have already uninstalled the app and wish to delete your cloud data without reinstalling, please request deletion by clicking the button below to email us:</p>
+            <h2>3. Local Notifications</h2>
+            <p>Reminder notifications are scheduled locally on your device via the flutter_local_notifications plugin. We do not use remote push servers or trackers to deliver these reminders, and all scheduling is calculated locally using timezone offsets.</p>
 
-            <div class="button-group">
-                <a class="btn btn-primary" href="mailto:thamarasenanayake@gmail.com?subject=HabitFlow Account Deletion Request&body=Please delete my HabitFlow account and all associated data. My registered email is: [Enter registered email address]">
-                    Request Deletion via Email
-                </a>
-            </div>
+            <h2>4. Data Export & Rights</h2>
+            <p>You own your data. At any time, you can export your entire habit list and completion history in JSON format via the "Export Data" button in your settings to save it or share it elsewhere. You can also request complete account and data deletion at any time.</p>
+
+            <h2>5. Information Security</h2>
+            <p>We employ standard device sandboxing and safety measures. No analytical trackers, third-party advertisement scripts, or behavioral tracking SDKs are present in HabitFlow.</p>
         </div>
 
         <div class="footer">
-            <p>© 2026 HabitFlow. All rights reserved.</p>
+            <p>© 2026 HabitFlow. All rights reserved. • <a href="delete_account.html">Request Account Deletion</a></p>
         </div>
     </div>
 </body>
