@@ -6,25 +6,36 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'views/auth_wrapper.dart';
 import 'viewmodels/theme_viewmodel.dart';
-import 'theme/theme_ext.dart';
 import 'services/notification_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp();
 
-  // Pass all uncaught framework errors from the Flutter framework to Crashlytics
-  FlutterError.onError = (errorDetails) {
-    FirebaseCrashlytics.instance.recordFlutterFatalError(errorDetails);
-  };
+  // Try initializing Firebase and Crashlytics safely
+  try {
+    await Firebase.initializeApp();
+    
+    // Pass all uncaught framework errors from the Flutter framework to Crashlytics
+    FlutterError.onError = (errorDetails) {
+      FirebaseCrashlytics.instance.recordFlutterFatalError(errorDetails);
+    };
 
-  // Pass all uncaught asynchronous errors that aren't handled by the Flutter framework to Crashlytics
-  PlatformDispatcher.instance.onError = (error, stack) {
-    FirebaseCrashlytics.instance.recordError(error, stack, fatal: true);
-    return true;
-  };
+    // Pass all uncaught asynchronous errors that aren't handled by the Flutter framework to Crashlytics
+    PlatformDispatcher.instance.onError = (error, stack) {
+      FirebaseCrashlytics.instance.recordError(error, stack, fatal: true);
+      return true;
+    };
+  } catch (e) {
+    debugPrint('Firebase Initialization Failed: $e');
+  }
 
-  await NotificationService.init();
+  // Try initializing Notification Service safely
+  try {
+    await NotificationService.init();
+  } catch (e) {
+    debugPrint('Notification Service Initialization Failed: $e');
+  }
+
   SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
     systemNavigationBarColor: Colors.transparent,
     systemNavigationBarIconBrightness: Brightness.light, // or Brightness.dark depending on theme
